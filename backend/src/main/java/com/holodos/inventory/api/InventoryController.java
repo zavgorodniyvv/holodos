@@ -5,6 +5,8 @@ import com.holodos.inventory.api.InventoryDtos.ConsumeStockRequest;
 import com.holodos.inventory.api.InventoryDtos.MoveStockRequest;
 import com.holodos.inventory.api.InventoryDtos.StockEntryResponse;
 import com.holodos.inventory.application.InventoryService;
+import jakarta.validation.Valid;
+import java.util.List;
 import com.holodos.inventory.domain.StockStatus;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
