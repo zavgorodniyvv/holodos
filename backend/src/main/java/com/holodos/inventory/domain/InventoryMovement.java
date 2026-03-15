@@ -51,6 +51,17 @@ public class InventoryMovement {
         }
     }
 
+
+    public Long getId() { return id; }
+    public Product getProduct() { return product; }
+    public StockEntry getStockEntry() { return stockEntry; }
+    public StoragePlace getFromStoragePlace() { return fromStoragePlace; }
+    public StoragePlace getToStoragePlace() { return toStoragePlace; }
+    public BigDecimal getQuantity() { return quantity; }
+    public OffsetDateTime getMovedAt() { return movedAt; }
+    public String getComment() { return comment; }
+    public String getUsername() { return username; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setProduct(Product product) { this.product = product; }
     public void setStockEntry(StockEntry stockEntry) { this.stockEntry = stockEntry; }
     public void setFromStoragePlace(StoragePlace fromStoragePlace) { this.fromStoragePlace = fromStoragePlace; }

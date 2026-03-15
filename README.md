@@ -15,6 +15,7 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - Inventory module baseline (`/api/stock-entries`)
 - Shopping list module baseline (`/api/shopping-list`)
 - Purchase processing baseline (`/api/purchases/process`)
+- Movement history endpoint (`/api/movements`)
 - Global validation error format + correlation ID support
 - Basic unit test for product creation business rule
 
@@ -60,7 +61,7 @@ mvn test
 ```
 
 ## Next steps
-- Inventory / stock entries module
-- Shopping list + purchase processing
 - Operation log writing from services
+- Filtering/sorting/pagination for inventory, shopping and movement views
+- Notifications + reports modules
 - Flutter mobile scaffold + SQLite sync queue
