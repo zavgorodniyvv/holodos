@@ -126,3 +126,16 @@ Screens planned:
   - `/api/stock-entries` (status, storage place, search)
   - `/api/shopping-list` (status, store, search)
   - `/api/movements` (from/to storage place)
+
+
+## Increment 4 (implemented)
+- Added Google Keep integration boundary module (`integrations/googlekeep`):
+  - adapter interface `GoogleKeepClient`
+  - stub implementation `StubGoogleKeepClient`
+  - bind + sync orchestration service with sync binding/event persistence
+  - REST endpoints at `/api/integrations/google-keep`
+- Added notifications/settings foundation:
+  - `user_settings`, `notifications`, `sync_bindings`, `sync_events` migration
+  - settings API at `/api/settings`
+  - notifications API at `/api/notifications`
+  - scheduled inventory checks for expiring soon + stored too long notifications

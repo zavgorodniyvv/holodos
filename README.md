@@ -19,6 +19,8 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - Movement history endpoint (`/api/movements`)
 - Operation log hooks for inventory/shopping/purchase actions
 - Filtering + pagination on inventory/shopping/movements list APIs
+- Google Keep integration boundary with stub adapter and sync state persistence
+- Notification/settings APIs + scheduled expiry/old-item checks
 - Global validation error format + correlation ID support
 - Basic unit test for product creation business rule
 
@@ -68,6 +70,9 @@ mvn test
 - Notifications + reports modules
 - CSV/JSON import-export + backup/restore
 - Google Keep integration adapter + sync state/retry
+- Reports module + CSV/JSON exports
+- Real Google Keep adapter behind existing integration interface
+- Enhanced sync retry/diagnostics + Keep inbound processing
 - Inventory / stock entries module
 - Shopping list + purchase processing
 - Operation log writing from services
