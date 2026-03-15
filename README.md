@@ -67,6 +67,9 @@ mvn test
 
 ## Next steps
 
+- Operation log writing from services
+- Filtering/sorting/pagination for inventory, shopping and movement views
+- Notifications + reports modules
 - Notifications + reports modules
 - CSV/JSON import-export + backup/restore
 - Google Keep integration adapter + sync state/retry

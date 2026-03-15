@@ -15,6 +15,7 @@ import com.holodos.shopping.domain.ShoppingListItem;
 import com.holodos.shopping.infrastructure.ShoppingListItemRepository;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
