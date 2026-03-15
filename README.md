@@ -12,6 +12,7 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
   - Categories
   - Stores
   - Products
+
 - Inventory module baseline (`/api/stock-entries`)
 - Shopping list module baseline (`/api/shopping-list`)
 - Purchase processing baseline (`/api/purchases/process`)
@@ -68,4 +69,7 @@ mvn test
 - Reports module + CSV/JSON exports
 - Real Google Keep adapter behind existing integration interface
 - Enhanced sync retry/diagnostics + Keep inbound processing
+- Inventory / stock entries module
+- Shopping list + purchase processing
+- Operation log writing from services
 - Flutter mobile scaffold + SQLite sync queue

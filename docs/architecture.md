@@ -39,9 +39,13 @@ Implemented migrations include:
 - seed data for baseline dictionaries.
 
 Next migrations will add:
+
 - `notifications`, `sync_bindings`, `sync_events`, `user_settings`
 - reports materialization and export snapshots
 - integration diagnostics tables.
+- `stock_entries`, `shopping_list_items`, `purchase_events`, `inventory_transactions`
+- notification and sync state tables
+- settings and export snapshots.
 
 ## 5) API proposal
 Implemented endpoints:
@@ -58,6 +62,7 @@ Cross-cutting:
 - pagination for product listing (`Pageable`)
 
 Planned endpoints in next phases:
+- `/api/stock-entries`, `/api/shopping-list`, `/api/purchases`, `/api/movements`
 - `/api/notifications`, `/api/reports`, `/api/settings`, `/api/integrations/google-keep`.
 
 ## 6) Mobile app structure (planned)
