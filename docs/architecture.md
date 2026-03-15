@@ -39,13 +39,13 @@ Implemented migrations include:
 - seed data for baseline dictionaries.
 
 Next migrations will add:
-
 - `notifications`, `sync_bindings`, `sync_events`, `user_settings`
 - reports materialization and export snapshots
 - integration diagnostics tables.
 - `stock_entries`, `shopping_list_items`, `purchase_events`, `inventory_transactions`
 - notification and sync state tables
 - settings and export snapshots.
+
 
 ## 5) API proposal
 Implemented endpoints:
@@ -114,7 +114,6 @@ Screens planned:
   - create `purchase_event`
   - create stock entry from purchase
   - infer expiry from product shelf-life when omitted
-
 - Added dedicated `/api/movements` read endpoint for movement history.
 
 

@@ -66,6 +66,10 @@ mvn test
 ```
 
 ## Next steps
+
+- Notifications + reports modules
+- CSV/JSON import-export + backup/restore
+- Google Keep integration adapter + sync state/retry
 - Reports module + CSV/JSON exports
 - Real Google Keep adapter behind existing integration interface
 - Enhanced sync retry/diagnostics + Keep inbound processing
