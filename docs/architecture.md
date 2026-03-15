@@ -39,6 +39,10 @@ Implemented migrations include:
 - seed data for baseline dictionaries.
 
 Next migrations will add:
+
+- `notifications`, `sync_bindings`, `sync_events`, `user_settings`
+- reports materialization and export snapshots
+- integration diagnostics tables.
 - `stock_entries`, `shopping_list_items`, `purchase_events`, `inventory_transactions`
 - notification and sync state tables
 - settings and export snapshots.
@@ -96,3 +100,43 @@ Screens planned:
 - real Google Keep adapter
 - idempotent bi-directional sync
 - retry, diagnostics, and integration error observability
+
+## Increment 2 (implemented)
+- Added `inventory` module baseline:
+  - stock entry CRUD-like flows (`add`, `consume`, `discard`, `move`)
+  - movement log persistence with flat storage-place constraints
+- Added `shopping` module baseline:
+  - shopping list item create/update/list
+  - completion flow
+  - auto-add replenishment with active-item deduplication by product
+- Added `purchases` module baseline:
+  - process shopping item as purchased
+  - create `purchase_event`
+  - create stock entry from purchase
+  - infer expiry from product shelf-life when omitted
+
+- Added dedicated `/api/movements` read endpoint for movement history.
+
+
+## Increment 3 (implemented)
+- Added operation/audit log service and logging hooks for key flows:
+  - stock add/consume/discard/move
+  - shopping create/update/complete/auto-add
+  - purchase processing
+- Added filtering + pagination support for:
+  - `/api/stock-entries` (status, storage place, search)
+  - `/api/shopping-list` (status, store, search)
+  - `/api/movements` (from/to storage place)
+
+
+## Increment 4 (implemented)
+- Added Google Keep integration boundary module (`integrations/googlekeep`):
+  - adapter interface `GoogleKeepClient`
+  - stub implementation `StubGoogleKeepClient`
+  - bind + sync orchestration service with sync binding/event persistence
+  - REST endpoints at `/api/integrations/google-keep`
+- Added notifications/settings foundation:
+  - `user_settings`, `notifications`, `sync_bindings`, `sync_events` migration
+  - settings API at `/api/settings`
+  - notifications API at `/api/notifications`
+  - scheduled inventory checks for expiring soon + stored too long notifications
