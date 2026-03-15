@@ -6,6 +6,7 @@ import com.holodos.catalog.domain.UnitOfMeasure;
 import com.holodos.catalog.infrastructure.ProductRepository;
 import com.holodos.catalog.infrastructure.StoreRepository;
 import com.holodos.catalog.infrastructure.UnitRepository;
+import com.holodos.common.application.OperationLogService;
 import com.holodos.shopping.api.ShoppingDtos.ShoppingItemResponse;
 import com.holodos.shopping.api.ShoppingDtos.ShoppingItemUpsertRequest;
 import com.holodos.shopping.domain.ShoppingItemSource;
@@ -15,6 +16,10 @@ import com.holodos.shopping.infrastructure.ShoppingListItemRepository;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,38 +30,53 @@ public class ShoppingListService {
     private final ProductRepository productRepository;
     private final UnitRepository unitRepository;
     private final StoreRepository storeRepository;
+    private final OperationLogService operationLogService;
 
     public ShoppingListService(ShoppingListItemRepository shoppingListItemRepository, ProductRepository productRepository,
-                               UnitRepository unitRepository, StoreRepository storeRepository) {
+                               UnitRepository unitRepository, StoreRepository storeRepository,
+                               OperationLogService operationLogService) {
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.productRepository = productRepository;
         this.unitRepository = unitRepository;
         this.storeRepository = storeRepository;
+        this.operationLogService = operationLogService;
     }
 
     @Transactional(readOnly = true)
-    public List<ShoppingItemResponse> listActive() {
-        return shoppingListItemRepository.findByStatusOrderBySortOrderAsc(ShoppingItemStatus.ACTIVE).stream().map(this::map).toList();
+    public Page<ShoppingItemResponse> list(ShoppingItemStatus status, Long storeId, String search, Pageable pageable) {
+        Specification<ShoppingListItem> spec = Specification.where((Specification<ShoppingListItem>) null);
+        if (status != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
+        if (storeId != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("store").get("id"), storeId));
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.toLowerCase() + "%";
+            spec = spec.and((root, q, cb) -> cb.like(cb.lower(root.get("title")), pattern));
+        }
+        return shoppingListItemRepository.findAll(spec, pageable).map(this::map);
     }
 
     public ShoppingItemResponse create(ShoppingItemUpsertRequest request) {
         ShoppingListItem item = new ShoppingListItem();
         apply(item, request);
         item.setStatus(ShoppingItemStatus.ACTIVE);
-        return map(shoppingListItemRepository.save(item));
+        ShoppingListItem saved = shoppingListItemRepository.save(item);
+        operationLogService.log("SHOPPING_CREATE", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("title", saved.getTitle(), "source", saved.getSource().name()));
+        return map(saved);
     }
 
     public ShoppingItemResponse update(Long id, ShoppingItemUpsertRequest request) {
         ShoppingListItem item = shoppingListItemRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Shopping item not found"));
         apply(item, request);
-        return map(shoppingListItemRepository.save(item));
+        ShoppingListItem saved = shoppingListItemRepository.save(item);
+        operationLogService.log("SHOPPING_UPDATE", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("title", saved.getTitle()));
+        return map(saved);
     }
 
     public void markCompleted(Long id) {
         ShoppingListItem item = shoppingListItemRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Shopping item not found"));
         item.setStatus(ShoppingItemStatus.COMPLETED);
         item.setCompletedAt(OffsetDateTime.now());
-        shoppingListItemRepository.save(item);
+        ShoppingListItem saved = shoppingListItemRepository.save(item);
+        operationLogService.log("SHOPPING_COMPLETE", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("completed", true));
     }
 
     public void autoAddIfMissing(Product product, BigDecimal quantity) {
@@ -75,7 +95,8 @@ public class ShoppingListService {
         item.setSource(ShoppingItemSource.AUTO_REPLENISHMENT);
         item.setStatus(ShoppingItemStatus.ACTIVE);
         item.setSortOrder(0);
-        shoppingListItemRepository.save(item);
+        ShoppingListItem saved = shoppingListItemRepository.save(item);
+        operationLogService.log("SHOPPING_AUTO_ADD", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("productId", product.getId(), "quantity", quantity));
     }
 
     private void apply(ShoppingListItem item, ShoppingItemUpsertRequest request) {

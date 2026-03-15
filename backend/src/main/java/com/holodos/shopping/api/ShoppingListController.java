@@ -5,6 +5,11 @@ import com.holodos.shopping.api.ShoppingDtos.ShoppingItemUpsertRequest;
 import com.holodos.shopping.application.ShoppingListService;
 import jakarta.validation.Valid;
 import java.util.List;
+import com.holodos.shopping.domain.ShoppingItemStatus;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,8 +22,13 @@ public class ShoppingListController {
     }
 
     @GetMapping
-    public List<ShoppingItemResponse> listActive() {
-        return shoppingListService.listActive();
+    public Page<ShoppingItemResponse> list(
+        @RequestParam(required = false) ShoppingItemStatus status,
+        @RequestParam(required = false) Long storeId,
+        @RequestParam(required = false) String search,
+        @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return shoppingListService.list(status, storeId, search, pageable);
     }
 
     @PostMapping

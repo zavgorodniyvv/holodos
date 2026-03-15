@@ -6,6 +6,7 @@ import com.holodos.catalog.domain.UnitOfMeasure;
 import com.holodos.catalog.infrastructure.ProductRepository;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
 import com.holodos.catalog.infrastructure.UnitRepository;
+import com.holodos.common.application.OperationLogService;
 import com.holodos.inventory.api.InventoryDtos.AddStockRequest;
 import com.holodos.inventory.api.InventoryDtos.ConsumeStockRequest;
 import com.holodos.inventory.api.InventoryDtos.MoveStockRequest;
@@ -19,6 +20,10 @@ import com.holodos.shopping.application.ShoppingListService;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,21 +36,31 @@ public class InventoryService {
     private final UnitRepository unitRepository;
     private final StoragePlaceRepository storagePlaceRepository;
     private final ShoppingListService shoppingListService;
+    private final OperationLogService operationLogService;
 
     public InventoryService(StockEntryRepository stockEntryRepository, InventoryMovementRepository movementRepository,
                             ProductRepository productRepository, UnitRepository unitRepository,
-                            StoragePlaceRepository storagePlaceRepository, ShoppingListService shoppingListService) {
+                            StoragePlaceRepository storagePlaceRepository, ShoppingListService shoppingListService,
+                            OperationLogService operationLogService) {
         this.stockEntryRepository = stockEntryRepository;
         this.movementRepository = movementRepository;
         this.productRepository = productRepository;
         this.unitRepository = unitRepository;
         this.storagePlaceRepository = storagePlaceRepository;
         this.shoppingListService = shoppingListService;
+        this.operationLogService = operationLogService;
     }
 
     @Transactional(readOnly = true)
-    public List<StockEntryResponse> list() {
-        return stockEntryRepository.findAll().stream().map(this::map).toList();
+    public Page<StockEntryResponse> list(StockStatus status, Long storagePlaceId, String search, Pageable pageable) {
+        Specification<StockEntry> spec = Specification.where((Specification<StockEntry>) null);
+        if (status != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
+        if (storagePlaceId != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("storagePlace").get("id"), storagePlaceId));
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.toLowerCase() + "%";
+            spec = spec.and((root, q, cb) -> cb.like(cb.lower(root.get("product").get("name")), pattern));
+        }
+        return stockEntryRepository.findAll(spec, pageable).map(this::map);
     }
 
     public StockEntryResponse addStock(AddStockRequest request) {
@@ -63,7 +78,9 @@ public class InventoryService {
         entry.setExpiresAt(request.expiresAt());
         entry.setComment(request.comment());
         entry.setStatus(StockStatus.AVAILABLE);
-        return map(stockEntryRepository.save(entry));
+        StockEntry saved = stockEntryRepository.save(entry);
+        operationLogService.log("STOCK_ADD", "StockEntry", String.valueOf(saved.getId()), Map.of("productId", product.getId(), "quantity", saved.getQuantity()));
+        return map(saved);
     }
 
     public StockEntryResponse consume(Long stockEntryId, ConsumeStockRequest request) {
@@ -82,13 +99,17 @@ public class InventoryService {
             BigDecimal replenishmentQty = entry.getProduct().getReorderQuantity() == null ? BigDecimal.ONE : entry.getProduct().getReorderQuantity();
             shoppingListService.autoAddIfMissing(entry.getProduct(), replenishmentQty);
         }
-        return map(stockEntryRepository.save(entry));
+        StockEntry saved = stockEntryRepository.save(entry);
+        operationLogService.log("STOCK_CONSUME", "StockEntry", String.valueOf(saved.getId()), Map.of("consumed", request.quantity(), "remaining", saved.getQuantity()));
+        return map(saved);
     }
 
     public StockEntryResponse discard(Long stockEntryId) {
         StockEntry entry = stockEntryRepository.findById(stockEntryId).orElseThrow(() -> new IllegalArgumentException("Stock entry not found"));
         entry.setStatus(StockStatus.DISCARDED);
-        return map(stockEntryRepository.save(entry));
+        StockEntry saved = stockEntryRepository.save(entry);
+        operationLogService.log("STOCK_DISCARD", "StockEntry", String.valueOf(saved.getId()), Map.of("status", saved.getStatus().name()));
+        return map(saved);
     }
 
     public StockEntryResponse move(Long stockEntryId, MoveStockRequest request) {
@@ -117,7 +138,9 @@ public class InventoryService {
         movementRepository.save(movement);
 
         entry.setStoragePlace(target);
-        return map(stockEntryRepository.save(entry));
+        StockEntry saved = stockEntryRepository.save(entry);
+        operationLogService.log("STOCK_MOVE", "StockEntry", String.valueOf(saved.getId()), Map.of("toStoragePlaceId", target.getId(), "quantity", request.quantity()));
+        return map(saved);
     }
 
     private StockEntryResponse map(StockEntry e) {

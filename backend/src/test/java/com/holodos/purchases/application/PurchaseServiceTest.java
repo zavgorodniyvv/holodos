@@ -7,6 +7,7 @@ import com.holodos.catalog.domain.Product;
 import com.holodos.catalog.domain.StoragePlace;
 import com.holodos.catalog.domain.UnitOfMeasure;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
+import com.holodos.common.application.OperationLogService;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
 import com.holodos.purchases.api.PurchaseDtos.ProcessPurchaseRequest;
 import com.holodos.purchases.infrastructure.PurchaseEventRepository;
@@ -29,12 +30,13 @@ class PurchaseServiceTest {
     @Mock PurchaseEventRepository purchaseEventRepository;
     @Mock StockEntryRepository stockEntryRepository;
     @Mock StoragePlaceRepository storagePlaceRepository;
+    @Mock OperationLogService operationLogService;
 
     PurchaseService purchaseService;
 
     @BeforeEach
     void setUp() {
-        purchaseService = new PurchaseService(shoppingListItemRepository, purchaseEventRepository, stockEntryRepository, storagePlaceRepository);
+        purchaseService = new PurchaseService(shoppingListItemRepository, purchaseEventRepository, stockEntryRepository, storagePlaceRepository, operationLogService);
     }
 
     @Test
@@ -62,5 +64,6 @@ class PurchaseServiceTest {
         verify(purchaseEventRepository, times(1)).save(any());
         verify(stockEntryRepository, times(1)).save(any());
         verify(shoppingListItemRepository, times(1)).save(any());
+        verify(operationLogService, times(1)).log(eq("PURCHASE_PROCESS"), eq("ShoppingListItem"), anyString(), anyMap());
     }
 }

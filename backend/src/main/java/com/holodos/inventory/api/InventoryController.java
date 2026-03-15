@@ -7,6 +7,11 @@ import com.holodos.inventory.api.InventoryDtos.StockEntryResponse;
 import com.holodos.inventory.application.InventoryService;
 import jakarta.validation.Valid;
 import java.util.List;
+import com.holodos.inventory.domain.StockStatus;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,8 +24,13 @@ public class InventoryController {
     }
 
     @GetMapping
-    public List<StockEntryResponse> list() {
-        return inventoryService.list();
+    public Page<StockEntryResponse> list(
+        @RequestParam(required = false) StockStatus status,
+        @RequestParam(required = false) Long storagePlaceId,
+        @RequestParam(required = false) String search,
+        @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return inventoryService.list(status, storagePlaceId, search, pageable);
     }
 
     @PostMapping

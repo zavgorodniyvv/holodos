@@ -10,6 +10,7 @@ import com.holodos.catalog.domain.UnitOfMeasure;
 import com.holodos.catalog.infrastructure.ProductRepository;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
 import com.holodos.catalog.infrastructure.UnitRepository;
+import com.holodos.common.application.OperationLogService;
 import com.holodos.inventory.api.InventoryDtos.ConsumeStockRequest;
 import com.holodos.inventory.domain.StockEntry;
 import com.holodos.inventory.domain.StockStatus;
@@ -32,12 +33,13 @@ class InventoryServiceTest {
     @Mock UnitRepository unitRepository;
     @Mock StoragePlaceRepository storagePlaceRepository;
     @Mock ShoppingListService shoppingListService;
+    @Mock OperationLogService operationLogService;
 
     InventoryService inventoryService;
 
     @BeforeEach
     void setUp() {
-        inventoryService = new InventoryService(stockEntryRepository, movementRepository, productRepository, unitRepository, storagePlaceRepository, shoppingListService);
+        inventoryService = new InventoryService(stockEntryRepository, movementRepository, productRepository, unitRepository, storagePlaceRepository, shoppingListService, operationLogService);
     }
 
     @Test
@@ -62,5 +64,6 @@ class InventoryServiceTest {
 
         assertEquals(StockStatus.CONSUMED, response.status());
         verify(shoppingListService).autoAddIfMissing(product, BigDecimal.valueOf(2));
+        verify(operationLogService).log(eq("STOCK_CONSUME"), eq("StockEntry"), anyString(), anyMap());
     }
 }

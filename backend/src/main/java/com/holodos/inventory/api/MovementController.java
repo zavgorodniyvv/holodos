@@ -6,6 +6,13 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -18,8 +25,19 @@ public class MovementController {
     }
 
     @GetMapping
-    public List<MovementResponse> list() {
-        return movementRepository.findAll().stream().map(m -> new MovementResponse(
+    public Page<MovementResponse> list(
+        @RequestParam(required = false) Long fromStoragePlaceId,
+        @RequestParam(required = false) Long toStoragePlaceId,
+        @PageableDefault(size = 20) Pageable pageable
+    ) {
+        Specification<com.holodos.inventory.domain.InventoryMovement> spec = Specification.where((Specification<com.holodos.inventory.domain.InventoryMovement>) null);
+        if (fromStoragePlaceId != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("fromStoragePlace").get("id"), fromStoragePlaceId));
+        }
+        if (toStoragePlaceId != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("toStoragePlace").get("id"), toStoragePlaceId));
+        }
+        return movementRepository.findAll(spec, pageable).map(m -> new MovementResponse(
             m.getId(),
             m.getProduct().getId(),
             m.getStockEntry().getId(),
@@ -30,7 +48,7 @@ public class MovementController {
             m.getComment(),
             m.getUsername(),
             m.getCreatedAt()
-        )).toList();
+        ));
     }
 
     public record MovementResponse(

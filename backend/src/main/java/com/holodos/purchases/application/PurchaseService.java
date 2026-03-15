@@ -2,6 +2,7 @@ package com.holodos.purchases.application;
 
 import com.holodos.catalog.domain.StoragePlace;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
+import com.holodos.common.application.OperationLogService;
 import com.holodos.inventory.domain.StockEntry;
 import com.holodos.inventory.domain.StockStatus;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
@@ -12,6 +13,8 @@ import com.holodos.shopping.domain.ShoppingItemStatus;
 import com.holodos.shopping.domain.ShoppingListItem;
 import com.holodos.shopping.infrastructure.ShoppingListItemRepository;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +25,16 @@ public class PurchaseService {
     private final PurchaseEventRepository purchaseEventRepository;
     private final StockEntryRepository stockEntryRepository;
     private final StoragePlaceRepository storagePlaceRepository;
+    private final OperationLogService operationLogService;
 
     public PurchaseService(ShoppingListItemRepository shoppingListItemRepository, PurchaseEventRepository purchaseEventRepository,
-                           StockEntryRepository stockEntryRepository, StoragePlaceRepository storagePlaceRepository) {
+                           StockEntryRepository stockEntryRepository, StoragePlaceRepository storagePlaceRepository,
+                           OperationLogService operationLogService) {
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.purchaseEventRepository = purchaseEventRepository;
         this.stockEntryRepository = stockEntryRepository;
         this.storagePlaceRepository = storagePlaceRepository;
+        this.operationLogService = operationLogService;
     }
 
     public void processPurchase(ProcessPurchaseRequest request) {
@@ -72,6 +78,11 @@ public class PurchaseService {
         item.setStatus(ShoppingItemStatus.COMPLETED);
         item.setCompletedAt(OffsetDateTime.now());
         shoppingListItemRepository.save(item);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("productId", item.getProduct().getId());
+        payload.put("quantity", request.actualQuantity());
+        operationLogService.log("PURCHASE_PROCESS", "ShoppingListItem", String.valueOf(item.getId()), payload);
     }
 
     private StoragePlace resolveStorage(ShoppingListItem item, Long storagePlaceId) {
