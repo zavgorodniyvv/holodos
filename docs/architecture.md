@@ -257,3 +257,11 @@ Screens planned:
   - operation log by event type
   - expiring/expired/stored-too-long counts
   - purchases/discards counters
+
+
+## Increment 6 (implemented)
+- Added `export` module baseline with backup/restore endpoints:
+  - `/api/export/json` and `/api/export/json/download`
+  - `/api/export/restore`
+- Implemented JSON snapshot for dictionaries/products/shopping items and controlled restore flow.
+- Added initial unit tests for export and restore service behavior.

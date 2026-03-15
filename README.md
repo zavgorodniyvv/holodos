@@ -75,6 +75,7 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - Google Keep integration boundary with stub adapter and sync state persistence
 - Notification/settings APIs + scheduled expiry/old-item checks
 - Reports API (`/api/reports`) + CSV export endpoint (`/api/reports/export`)
+- JSON backup/export and restore API (`/api/export/json`, `/api/export/restore`)
 - Global validation error format + correlation ID support
 - Basic unit test for product creation business rule
 
@@ -120,6 +121,9 @@ mvn test
 ```
 
 ## Next steps
+- Real Google Keep adapter behind existing integration interface
+- Enhanced sync retry/diagnostics + Keep inbound processing
+- CSV/JSON import coverage extension (media, stock history, notifications)
 - JSON export + backup/restore endpoints
 - Real Google Keep adapter behind existing integration interface
 - Enhanced sync retry/diagnostics + Keep inbound processing
