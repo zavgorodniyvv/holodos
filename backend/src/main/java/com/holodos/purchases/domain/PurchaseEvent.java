@@ -58,6 +58,18 @@ public class PurchaseEvent {
         }
     }
 
+
+    public Long getId() { return id; }
+    public ShoppingListItem getShoppingListItem() { return shoppingListItem; }
+    public Product getProduct() { return product; }
+    public java.math.BigDecimal getQuantity() { return quantity; }
+    public UnitOfMeasure getUnit() { return unit; }
+    public Store getStore() { return store; }
+    public OffsetDateTime getPurchasedAt() { return purchasedAt; }
+    public StoragePlace getStoragePlace() { return storagePlace; }
+    public OffsetDateTime getExpiresAt() { return expiresAt; }
+    public String getComment() { return comment; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setShoppingListItem(ShoppingListItem shoppingListItem) { this.shoppingListItem = shoppingListItem; }
     public void setProduct(Product product) { this.product = product; }
     public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }

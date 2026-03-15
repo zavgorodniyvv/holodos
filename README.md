@@ -74,6 +74,7 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - Filtering + pagination on inventory/shopping/movements list APIs
 - Google Keep integration boundary with stub adapter and sync state persistence
 - Notification/settings APIs + scheduled expiry/old-item checks
+- Reports API (`/api/reports`) + CSV export endpoint (`/api/reports/export`)
 - Global validation error format + correlation ID support
 - Basic unit test for product creation business rule
 
@@ -119,7 +120,9 @@ mvn test
 ```
 
 ## Next steps
-
+- JSON export + backup/restore endpoints
+- Real Google Keep adapter behind existing integration interface
+- Enhanced sync retry/diagnostics + Keep inbound processing
 - Operation log writing from services
 - Filtering/sorting/pagination for inventory, shopping and movement views
 - Notifications + reports modules

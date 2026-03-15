@@ -245,3 +245,15 @@ Screens planned:
   - settings API at `/api/settings`
   - notifications API at `/api/notifications`
   - scheduled inventory checks for expiring soon + stored too long notifications
+
+
+## Increment 5 (implemented)
+- Added `reports` module baseline with REST endpoints:
+  - `/api/reports` (aggregated metrics with filters)
+  - `/api/reports/export` (CSV export)
+- Implemented report aggregations for:
+  - inventory by storage place/category
+  - shopping by store
+  - operation log by event type
+  - expiring/expired/stored-too-long counts
+  - purchases/discards counters
