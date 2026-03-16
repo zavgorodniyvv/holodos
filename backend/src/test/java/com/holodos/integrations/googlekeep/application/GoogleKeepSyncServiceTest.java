@@ -7,11 +7,9 @@ import static org.mockito.Mockito.*;
 import com.holodos.integrations.googlekeep.domain.SyncBinding;
 import com.holodos.integrations.googlekeep.infrastructure.SyncBindingRepository;
 import com.holodos.integrations.googlekeep.infrastructure.SyncEventRepository;
-import com.holodos.purchases.application.PurchaseService;
 import com.holodos.shopping.domain.ShoppingItemStatus;
 import com.holodos.shopping.domain.ShoppingListItem;
 import com.holodos.shopping.infrastructure.ShoppingListItemRepository;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,13 +24,12 @@ class GoogleKeepSyncServiceTest {
     @Mock SyncEventRepository syncEventRepository;
     @Mock ShoppingListItemRepository shoppingListItemRepository;
     @Mock GoogleKeepClient googleKeepClient;
-    @Mock PurchaseService purchaseService;
 
     GoogleKeepSyncService service;
 
     @BeforeEach
     void setUp() {
-        service = new GoogleKeepSyncService(syncBindingRepository, syncEventRepository, shoppingListItemRepository, googleKeepClient, purchaseService);
+        service = new GoogleKeepSyncService(syncBindingRepository, syncEventRepository, shoppingListItemRepository, googleKeepClient);
     }
 
     @Test
@@ -56,31 +53,5 @@ class GoogleKeepSyncServiceTest {
         assertEquals("ok", res);
         verify(syncEventRepository, times(1)).save(any());
         verify(syncBindingRepository, atLeastOnce()).save(any());
-    }
-
-    @Test
-    void syncInboundProcessesCheckedItemsAsPurchases() {
-        SyncBinding b = new SyncBinding();
-        b.setUserKey("default");
-        b.setProvider(GoogleKeepSyncService.PROVIDER);
-        b.setRemoteNoteId("note-1");
-        b.setEnabled(true);
-
-        ShoppingListItem item = new ShoppingListItem();
-        item.setStatus(ShoppingItemStatus.ACTIVE);
-        item.setQuantity(BigDecimal.ONE);
-
-        when(syncBindingRepository.findByUserKeyAndProvider("default", GoogleKeepSyncService.PROVIDER)).thenReturn(Optional.of(b));
-        when(googleKeepClient.fetchChecklist("note-1")).thenReturn(new GoogleKeepClient.KeepRemoteState("etag-r1", List.of(
-            new GoogleKeepClient.KeepChecklistItem("Milk", true, "shopping-10")
-        )));
-        when(syncEventRepository.findFirstByIdempotencyKey(any())).thenReturn(Optional.empty());
-        when(shoppingListItemRepository.findById(10L)).thenReturn(Optional.of(item));
-        when(syncBindingRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-
-        String res = service.syncInbound("default");
-
-        assertEquals("Processed checked items: 1", res);
-        verify(purchaseService, times(1)).processPurchase(any());
     }
 }
