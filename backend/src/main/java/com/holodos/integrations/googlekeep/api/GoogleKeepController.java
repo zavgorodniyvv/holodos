@@ -26,16 +26,6 @@ public class GoogleKeepController {
         return new SyncResponse(details);
     }
 
-    @PostMapping("/sync-inbound")
-    public SyncResponse syncInbound(@Valid @RequestBody SyncRequest request) {
-        return new SyncResponse(googleKeepSyncService.syncInbound(request.userKey()));
-    }
-
-    @PostMapping("/retry-failed")
-    public SyncResponse retryFailed(@Valid @RequestBody SyncRequest request) {
-        return new SyncResponse(googleKeepSyncService.retryLastFailed(request.userKey()));
-    }
-
     public record BindRequest(@NotBlank String userKey, @NotBlank String remoteNoteId) {}
     public record BindResponse(Long id, String userKey, String remoteNoteId, boolean enabled) {}
     public record SyncRequest(@NotBlank String userKey) {}
