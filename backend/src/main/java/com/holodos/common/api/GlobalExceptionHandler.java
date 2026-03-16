@@ -35,12 +35,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(error("VALIDATION_ERROR", "Request validation failed", details));
     }
 
-
-    @ExceptionHandler(NotFoundException.class)
-    ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error("NOT_FOUND", ex.getMessage(), List.of()));
-    }
-
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(error("BAD_REQUEST", ex.getMessage(), List.of()));

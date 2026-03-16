@@ -1,5 +1,58 @@
 # Holodos
 
+Production-oriented MVP platform for mobile-first home inventory and shopping management.
+
+## Current status
+This repository now includes **Phase 1 foundation**:
+- backend bootstrap (Spring Boot modular monolith skeleton)
+- initial Flyway migration for core catalog tables
+- core catalog CRUD API for storage places, units, categories, stores, products
+- global API error format + correlation-id support
+- baseline security/cache/scheduling configuration
+- unit tests for critical catalog business logic path (product creation dependencies)
+
+## Tech stack
+- Java 25
+- Spring Boot 4
+- PostgreSQL + Flyway
+- Spring Data JPA, Validation, Security, OAuth2 Client
+- Spring Cache with Caffeine
+- OpenAPI/Swagger
+- JUnit5 + Mockito + Testcontainers (dependencies enabled)
+
+## Architecture documents
+- Detailed architecture and phased plan: `docs/architecture.md`
+
+## Run locally
+1. Start PostgreSQL:
+   ```bash
+   docker compose up -d
+   ```
+2. Run the application:
+   ```bash
+   mvn spring-boot:run
+   ```
+3. Open Swagger UI:
+   - `http://localhost:8080/swagger-ui.html`
+
+## Test
+```bash
+mvn test
+```
+
+## Implemented endpoints (initial)
+- `POST/GET /api/storage-places`
+- `POST/GET /api/units`
+- `POST/GET /api/categories`
+- `POST/GET /api/stores`
+- `POST/GET /api/products` (`query` search parameter)
+
+## Next planned steps
+- implement inventory module (`stock_entries`, movements, adjustments)
+- implement shopping list + purchase processing + auto-replenishment dedup
+- add operation log writes on domain events
+- scaffold Flutter app with offline SQLite and sync queue
+- build Google Keep adapter contracts + stub sync orchestrator
 Production-friendly MVP baseline for a mobile-first home inventory + shopping management system.
 
 ## Implemented in this increment
@@ -12,6 +65,7 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
   - Categories
   - Stores
   - Products
+
 - Inventory module baseline (`/api/stock-entries`)
 - Shopping list module baseline (`/api/shopping-list`)
 - Purchase processing baseline (`/api/purchases/process`)
@@ -19,13 +73,10 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - Operation log hooks for inventory/shopping/purchase actions
 - Filtering + pagination on inventory/shopping/movements list APIs
 - Google Keep integration boundary with stub adapter and sync state persistence
-- Google Keep inbound sync + retry endpoints (`/api/integrations/google-keep/sync-inbound`, `/retry-failed`)
 - Notification/settings APIs + scheduled expiry/old-item checks
 - Reports API (`/api/reports`) + CSV export endpoint (`/api/reports/export`)
 - JSON backup/export and restore API (`/api/export/json`, `/api/export/restore`)
-- Dataset CSV export endpoints (`/api/export/csv/products`, `/api/export/csv/shopping-list`, `/api/export/csv/operation-log`)
-- Product photo media API with storage adapter boundary (`/api/products/{id}/photo`)
-- Global validation/error format + correlation ID support (including `NOT_FOUND` for missing resources)
+- Global validation error format + correlation ID support
 - Basic unit test for product creation business rule
 
 ## Tech stack
@@ -63,19 +114,6 @@ curl -X POST http://localhost:8080/api/storage-places \
 curl "http://localhost:8080/api/products?search=milk&page=0&size=20"
 ```
 
-
-## Media storage configuration
-- Default provider: `FILESYSTEM` (`holodos.media.root-path`).
-- Product photo uploads accept `image/jpeg`, `image/png`, `image/webp` up to 10MB and reject empty payloads.
-- S3-compatible provider is now supported via `holodos.media.provider=S3` and:
-  - `holodos.media.s3.bucket`
-  - `holodos.media.s3.region`
-  - `holodos.media.s3.endpoint`
-  - `holodos.media.s3.access-key`
-  - `holodos.media.s3.secret-key`
-  - `holodos.media.s3.path-style-access`
-- Prefer supplying S3 credentials and bucket via environment variables (`HOLODOS_MEDIA_S3_*`) rather than committing secrets in config files.
-
 ## Test
 ```bash
 cd backend
@@ -83,8 +121,22 @@ mvn test
 ```
 
 ## Next steps
-- Real Google Keep adapter behind existing integration interface (OAuth tokens + API wiring)
-- Media hardening: image validation limits, thumbnail generation, and signed URLs
-- CSV/JSON import coverage extension (stock history, notifications)
+- Real Google Keep adapter behind existing integration interface
+- Enhanced sync retry/diagnostics + Keep inbound processing
+- CSV/JSON import coverage extension (media, stock history, notifications)
+- JSON export + backup/restore endpoints
+- Real Google Keep adapter behind existing integration interface
+- Enhanced sync retry/diagnostics + Keep inbound processing
+- Operation log writing from services
+- Filtering/sorting/pagination for inventory, shopping and movement views
+- Notifications + reports modules
+- Notifications + reports modules
+- CSV/JSON import-export + backup/restore
+- Google Keep integration adapter + sync state/retry
+- Reports module + CSV/JSON exports
+- Real Google Keep adapter behind existing integration interface
+- Enhanced sync retry/diagnostics + Keep inbound processing
+- Inventory / stock entries module
+- Shopping list + purchase processing
+- Operation log writing from services
 - Flutter mobile scaffold + SQLite sync queue
-- Tablet/mobile UI + offline sync queue implementation
