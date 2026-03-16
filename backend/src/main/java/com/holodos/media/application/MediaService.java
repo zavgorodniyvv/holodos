@@ -6,7 +6,6 @@ import com.holodos.media.domain.MediaObject;
 import com.holodos.media.infrastructure.MediaObjectRepository;
 import java.io.IOException;
 import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,13 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class MediaService {
-
-    private static final long MAX_UPLOAD_BYTES = 10L * 1024L * 1024L;
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-        "image/jpeg",
-        "image/png",
-        "image/webp"
-    );
 
     private final ProductRepository productRepository;
     private final MediaObjectRepository mediaObjectRepository;
@@ -41,20 +33,16 @@ public class MediaService {
         Product product = productRepository.findById(productId)
             .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
 
-        String contentType = normalizeAndValidateContentType(file.getContentType());
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
+            throw new IllegalArgumentException("Only image files are supported");
+        }
 
         byte[] bytes;
         try {
             bytes = file.getBytes();
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read uploaded file", e);
-        }
-
-        if (bytes.length == 0) {
-            throw new IllegalArgumentException("Uploaded image is empty");
-        }
-        if (bytes.length > MAX_UPLOAD_BYTES) {
-            throw new IllegalArgumentException("Uploaded image exceeds maximum size of 10MB");
         }
 
         String oldObjectKey = product.getPhotoKey();
@@ -65,31 +53,22 @@ public class MediaService {
             throw new IllegalStateException("Failed to store media object", e);
         }
 
-        try {
-            MediaObject mediaObject = new MediaObject();
-            mediaObject.setObjectKey(objectKey);
-            mediaObject.setContentType(contentType);
-            mediaObject.setOriginalFilename(file.getOriginalFilename());
-            mediaObject.setSizeBytes(bytes.length);
-            mediaObject.setStorageProvider(mediaStorageGateway.providerName());
+        MediaObject mediaObject = new MediaObject();
+        mediaObject.setObjectKey(objectKey);
+        mediaObject.setContentType(contentType);
+        mediaObject.setOriginalFilename(file.getOriginalFilename());
+        mediaObject.setSizeBytes(bytes.length);
+        mediaObject.setStorageProvider(mediaStorageGateway.providerName());
 
-            MediaObject saved = mediaObjectRepository.save(mediaObject);
-            product.setPhotoKey(objectKey);
-            productRepository.save(product);
+        MediaObject saved = mediaObjectRepository.save(mediaObject);
+        product.setPhotoKey(objectKey);
+        productRepository.save(product);
 
-            if (oldObjectKey != null && !oldObjectKey.equals(objectKey)) {
-                deleteObjectByKey(oldObjectKey);
-            }
-
-            return saved;
-        } catch (RuntimeException e) {
-            try {
-                mediaStorageGateway.delete(objectKey);
-            } catch (IOException ignored) {
-                // ignore cleanup failure and rethrow original error
-            }
-            throw e;
+        if (oldObjectKey != null && !oldObjectKey.equals(objectKey)) {
+            deleteObjectByKey(oldObjectKey);
         }
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -132,17 +111,6 @@ public class MediaService {
             throw new IllegalStateException("Failed to delete media object", e);
         }
         mediaObjectRepository.deleteByObjectKey(objectKey);
-    }
-
-    private String normalizeAndValidateContentType(String contentType) {
-        if (contentType == null) {
-            throw new IllegalArgumentException("Image content type is required");
-        }
-        String normalized = contentType.toLowerCase(Locale.ROOT);
-        if (!ALLOWED_CONTENT_TYPES.contains(normalized)) {
-            throw new IllegalArgumentException("Only JPEG, PNG, or WEBP images are supported");
-        }
-        return normalized;
     }
 
     private String buildObjectKey(Long productId, String originalFilename) {

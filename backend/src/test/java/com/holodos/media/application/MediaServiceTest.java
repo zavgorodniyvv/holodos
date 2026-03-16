@@ -3,9 +3,7 @@ package com.holodos.media.application;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,17 +49,6 @@ class MediaServiceTest {
         assertEquals(3L, saved.getSizeBytes());
         assertEquals(saved.getObjectKey(), product.getPhotoKey());
         verify(mediaStorageGateway).store(saved.getObjectKey(), new byte[] {1, 2, 3});
-    }
-
-    @Test
-    void uploadProductPhotoRejectsUnsupportedContentType() throws IOException {
-        Product product = new Product();
-        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
-
-        MockMultipartFile file = new MockMultipartFile("file", "doc.gif", "image/gif", new byte[] {1, 2, 3});
-
-        assertThrows(IllegalArgumentException.class, () -> mediaService.uploadProductPhoto(10L, file));
-        verify(mediaStorageGateway, never()).store(any(), any());
     }
 
     @Test
