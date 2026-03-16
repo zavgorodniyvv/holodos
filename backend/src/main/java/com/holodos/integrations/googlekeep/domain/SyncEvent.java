@@ -40,16 +40,6 @@ public class SyncEvent {
         if (createdAt == null) createdAt = OffsetDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public SyncBinding getBinding() { return binding; }
-    public String getEventType() { return eventType; }
-    public String getDirection() { return direction; }
-    public String getStatus() { return status; }
-    public String getCorrelationId() { return correlationId; }
-    public String getDetails() { return details; }
-    public String getIdempotencyKey() { return idempotencyKey; }
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-
     public void setBinding(SyncBinding binding) { this.binding = binding; }
     public void setEventType(String eventType) { this.eventType = eventType; }
     public void setDirection(String direction) { this.direction = direction; }
