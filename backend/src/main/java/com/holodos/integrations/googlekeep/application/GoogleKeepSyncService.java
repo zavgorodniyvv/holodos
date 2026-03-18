@@ -5,18 +5,26 @@ import com.holodos.integrations.googlekeep.domain.SyncBinding;
 import com.holodos.integrations.googlekeep.domain.SyncEvent;
 import com.holodos.integrations.googlekeep.infrastructure.SyncBindingRepository;
 import com.holodos.integrations.googlekeep.infrastructure.SyncEventRepository;
+import com.holodos.shopping.domain.ShoppingItemSource;
 import com.holodos.shopping.domain.ShoppingItemStatus;
+import com.holodos.shopping.domain.ShoppingListItem;
 import com.holodos.shopping.infrastructure.ShoppingListItemRepository;
+import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional
 public class GoogleKeepSyncService {
     public static final String PROVIDER = "GOOGLE_KEEP";
+    private static final Duration BASE_RETRY_DELAY = Duration.ofMinutes(5);
+    private static final Duration MAX_RETRY_DELAY = Duration.ofHours(2);
 
     private final SyncBindingRepository syncBindingRepository;
     private final SyncEventRepository syncEventRepository;
@@ -40,6 +48,11 @@ public class GoogleKeepSyncService {
         return syncBindingRepository.save(binding);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<SyncBinding> listBindings() {
+        return syncBindingRepository.findAll();
+    }
+
     public String syncNow(String userKey) {
         SyncBinding binding = syncBindingRepository.findByUserKeyAndProvider(userKey, PROVIDER)
             .orElseThrow(() -> new IllegalArgumentException("Google Keep binding not found"));
@@ -47,29 +60,109 @@ public class GoogleKeepSyncService {
             throw new IllegalArgumentException("Google Keep sync is disabled");
         }
 
+        if (binding.getNextRetryAt() != null && binding.getNextRetryAt().isAfter(OffsetDateTime.now())) {
+            throw new IllegalStateException("Sync retry scheduled after " + binding.getNextRetryAt());
+        }
+
         String idempotencyKey = "sync-" + userKey + "-" + UUID.randomUUID();
-        var items = shoppingListItemRepository.findByStatusOrderBySortOrderAsc(ShoppingItemStatus.ACTIVE).stream()
-            .map(i -> new GoogleKeepClient.KeepChecklistItem(i.getTitle(), false, "shopping-" + i.getId()))
+        try {
+            GoogleKeepClient.KeepRemoteState remoteState = googleKeepClient.fetchChecklist(binding.getRemoteNoteId());
+            applyRemoteState(remoteState);
+            binding.setLastRemoteEtag(remoteState.etag());
+            List<GoogleKeepClient.KeepChecklistItem> outboundItems = buildOutboundItems();
+            GoogleKeepClient.KeepSyncResult result = googleKeepClient.pushChecklist(binding.getRemoteNoteId(), outboundItems, binding.getLastRemoteEtag());
+
+            recordEvent(binding, idempotencyKey, result.success() ? "SUCCESS" : "FAILED", result.details());
+
+            if (result.success()) {
+                binding.setLastRemoteEtag(result.newEtag());
+                markSyncSuccess(binding);
+                return result.details();
+            }
+            handleFailure(binding, result.details());
+            return result.details();
+        } catch (Exception ex) {
+            handleFailure(binding, ex.getMessage());
+            recordEvent(binding, idempotencyKey, "FAILED", ex.getMessage());
+            throw new IllegalStateException("Google Keep sync failed", ex);
+        }
+    }
+
+    private void applyRemoteState(GoogleKeepClient.KeepRemoteState state) {
+        if (state == null || state.items() == null) {
+            return;
+        }
+        for (GoogleKeepClient.KeepChecklistItem item : state.items()) {
+            Long shoppingId = parseShoppingId(item.externalId());
+            if (shoppingId != null) {
+                shoppingListItemRepository.findById(shoppingId).ifPresent(existing -> {
+                    if (item.checked() && existing.getStatus() == ShoppingItemStatus.ACTIVE) {
+                        existing.setStatus(ShoppingItemStatus.COMPLETED);
+                        existing.setCompletedAt(OffsetDateTime.now());
+                        shoppingListItemRepository.save(existing);
+                    } else if (!item.checked() && existing.getStatus() == ShoppingItemStatus.COMPLETED) {
+                        existing.setStatus(ShoppingItemStatus.ACTIVE);
+                        existing.setCompletedAt(null);
+                        shoppingListItemRepository.save(existing);
+                    }
+                });
+            } else if (!item.checked()) {
+                ShoppingListItem newItem = new ShoppingListItem();
+                newItem.setTitle(item.text());
+                newItem.setQuantity(BigDecimal.ONE);
+                newItem.setSource(ShoppingItemSource.KEEP_SYNC);
+                newItem.setStatus(ShoppingItemStatus.ACTIVE);
+                newItem.setSortOrder(0);
+                shoppingListItemRepository.save(newItem);
+            }
+        }
+    }
+
+    private List<GoogleKeepClient.KeepChecklistItem> buildOutboundItems() {
+        return shoppingListItemRepository.findByStatusOrderBySortOrderAsc(ShoppingItemStatus.ACTIVE).stream()
+            .map(i -> new GoogleKeepClient.KeepChecklistItem(i.getTitle(), false, i.getId() == null ? null : "shopping-" + i.getId()))
             .toList();
+    }
 
-        GoogleKeepClient.KeepSyncResult result = googleKeepClient.pushChecklist(binding.getRemoteNoteId(), items, binding.getLastRemoteEtag());
-
+    private void recordEvent(SyncBinding binding, String idempotencyKey, String status, String details) {
         SyncEvent event = new SyncEvent();
         event.setBinding(binding);
         event.setEventType("SHOPPING_LIST_SYNC");
-        event.setDirection("OUTBOUND");
-        event.setStatus(result.success() ? "SUCCESS" : "FAILED");
-        event.setDetails(result.details());
+        event.setDirection("BIDIRECTIONAL");
+        event.setStatus(status);
+        event.setDetails(details);
         event.setIdempotencyKey(idempotencyKey);
         event.setCorrelationId(MDC.get(CorrelationIdFilter.MDC_KEY));
         syncEventRepository.save(event);
+    }
 
-        if (result.success()) {
-            binding.setLastRemoteEtag(result.newEtag());
-            binding.setLastSyncedAt(OffsetDateTime.now());
-            syncBindingRepository.save(binding);
+    private void markSyncSuccess(SyncBinding binding) {
+        binding.setLastSyncedAt(OffsetDateTime.now());
+        binding.setFailureCount(0);
+        binding.setLastErrorMessage(null);
+        binding.setNextRetryAt(null);
+        binding.setLastSyncStatus("SUCCESS");
+        syncBindingRepository.save(binding);
+    }
+
+    private void handleFailure(SyncBinding binding, String details) {
+        int failures = binding.getFailureCount() + 1;
+        binding.setFailureCount(failures);
+        binding.setLastErrorMessage(details);
+        long delayMinutes = Math.min(BASE_RETRY_DELAY.multipliedBy(failures).toMinutes(), MAX_RETRY_DELAY.toMinutes());
+        binding.setNextRetryAt(OffsetDateTime.now().plusMinutes(delayMinutes));
+        binding.setLastSyncStatus("FAILED");
+        syncBindingRepository.save(binding);
+    }
+
+    private Long parseShoppingId(String externalId) {
+        if (!StringUtils.hasText(externalId) || !externalId.startsWith("shopping-")) {
+            return null;
         }
-
-        return result.details();
+        try {
+            return Long.parseLong(externalId.substring("shopping-".length()));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 }

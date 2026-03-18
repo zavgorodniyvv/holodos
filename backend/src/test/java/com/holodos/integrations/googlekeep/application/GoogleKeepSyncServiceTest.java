@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class GoogleKeepSyncServiceTest {
@@ -33,7 +34,7 @@ class GoogleKeepSyncServiceTest {
     }
 
     @Test
-    void syncNowPushesChecklistAndStoresSyncEvent() {
+    void syncNowProcessesInboundAndPushesOutbound() {
         SyncBinding b = new SyncBinding();
         b.setUserKey("default");
         b.setProvider(GoogleKeepSyncService.PROVIDER);
@@ -42,9 +43,15 @@ class GoogleKeepSyncServiceTest {
 
         ShoppingListItem item = new ShoppingListItem();
         item.setTitle("Milk");
+        item.setStatus(ShoppingItemStatus.ACTIVE);
+        ReflectionTestUtils.setField(item, "id", 10L);
 
         when(syncBindingRepository.findByUserKeyAndProvider("default", GoogleKeepSyncService.PROVIDER)).thenReturn(Optional.of(b));
         when(shoppingListItemRepository.findByStatusOrderBySortOrderAsc(ShoppingItemStatus.ACTIVE)).thenReturn(List.of(item));
+        when(shoppingListItemRepository.findById(10L)).thenReturn(Optional.of(item));
+        when(googleKeepClient.fetchChecklist("note-1"))
+            .thenReturn(new GoogleKeepClient.KeepRemoteState("etag-1",
+                List.of(new GoogleKeepClient.KeepChecklistItem("Milk", true, "shopping-10"))));
         when(googleKeepClient.pushChecklist(any(), any(), any())).thenReturn(new GoogleKeepClient.KeepSyncResult(true, "etag-2", "ok"));
         when(syncBindingRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -53,5 +60,6 @@ class GoogleKeepSyncServiceTest {
         assertEquals("ok", res);
         verify(syncEventRepository, times(1)).save(any());
         verify(syncBindingRepository, atLeastOnce()).save(any());
+        verify(shoppingListItemRepository).save(item);
     }
 }

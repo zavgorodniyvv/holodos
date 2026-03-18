@@ -1,6 +1,8 @@
 package com.holodos.integrations.googlekeep.application;
 
+import com.holodos.integrations.googlekeep.domain.SyncBinding;
 import com.holodos.integrations.googlekeep.infrastructure.SyncBindingRepository;
+import java.time.OffsetDateTime;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,8 +18,15 @@ public class GoogleKeepRetryScheduler {
 
     @Scheduled(cron = "0 */20 * * * *")
     public void retryFailedSyncs() {
+        OffsetDateTime now = OffsetDateTime.now();
         syncBindingRepository.findAll().stream()
-            .filter(b -> b.isEnabled())
-            .forEach(b -> googleKeepSyncService.syncNow(b.getUserKey()));
+            .filter(SyncBinding::isEnabled)
+            .filter(b -> b.getNextRetryAt() == null || !b.getNextRetryAt().isAfter(now))
+            .forEach(b -> {
+                try {
+                    googleKeepSyncService.syncNow(b.getUserKey());
+                } catch (Exception ignored) {
+                }
+            });
     }
 }
