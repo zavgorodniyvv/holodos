@@ -15,9 +15,8 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import org.springframework.beans.factory.DisposableBean;
 
-public class S3MediaStorageGateway implements MediaStorageGateway, DisposableBean {
+public class S3MediaStorageGateway implements MediaStorageGateway {
 
     private static final String PROVIDER = "S3";
     private final String bucket;
@@ -28,11 +27,8 @@ public class S3MediaStorageGateway implements MediaStorageGateway, DisposableBea
         if (s3.getBucket() == null || s3.getBucket().isBlank()) {
             throw new IllegalStateException("holodos.media.s3.bucket is required when provider=S3");
         }
-        if (isBlank(s3.getAccessKey()) || isBlank(s3.getSecretKey())) {
+        if (s3.getAccessKey() == null || s3.getSecretKey() == null) {
             throw new IllegalStateException("holodos.media.s3.access-key and secret-key are required when provider=S3");
-        }
-        if (isBlank(s3.getRegion())) {
-            throw new IllegalStateException("holodos.media.s3.region is required when provider=S3");
         }
 
         S3ClientBuilder builder = S3Client.builder()
@@ -95,13 +91,4 @@ public class S3MediaStorageGateway implements MediaStorageGateway, DisposableBea
             throw new IOException("S3 deleteObject failed", e);
         }
     }
-    @Override
-    public void destroy() {
-        s3Client.close();
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
-    }
-
 }
