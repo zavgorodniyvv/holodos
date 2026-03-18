@@ -1,5 +1,6 @@
 package com.holodos.common.api;
 
+import com.holodos.common.domain.NotFoundException;
 import com.holodos.common.infrastructure.CorrelationIdFilter;
 import jakarta.validation.ConstraintViolationException;
 import java.time.OffsetDateTime;
