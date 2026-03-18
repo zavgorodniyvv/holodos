@@ -76,7 +76,7 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - Inventory adjustment endpoint to log manual corrections + movement splitting to avoid negative stock
 - Operation log hooks for inventory/shopping/purchase actions via domain events
 - Filtering + pagination on inventory/shopping/movements list APIs
-- Google Keep integration boundary with stub adapter and sync state persistence
+- Google Keep integration boundary with configurable HTTP adapter (stub by default, HTTP client when enabled)
 - Notification/settings APIs + scheduled expiry/old-item checks
 - Reports API (`/api/reports`) + CSV export endpoint (`/api/reports/export`)
 - JSON backup/export and restore API (`/api/export/json`, `/api/export/restore`)
@@ -116,7 +116,30 @@ curl -X POST http://localhost:8080/api/storage-places \
   -d '{"name":"Bathroom","description":"Bath area","icon":"bath","color":"#22A","sortOrder":40,"active":true}'
 
 curl "http://localhost:8080/api/products?search=milk&page=0&size=20"
+
+curl -X POST http://localhost:8080/api/integrations/google-keep/bind \
+  -H 'Content-Type: application/json' \
+  -d '{"userKey":"user-1","remoteNoteId":"note-123"}'
+
+curl -X POST http://localhost:8080/api/integrations/google-keep/sync \
+  -H 'Content-Type: application/json' \
+  -d '{"userKey":"user-1"}'
 ```
+
+### Google Keep integration configuration
+Enable the HTTP adapter instead of the stub by configuring the integration section:
+
+```yaml
+holodos:
+  integrations:
+    google-keep:
+      enabled: true
+      base-url: https://keep.example.com
+      api-key: ${GOOGLE_KEEP_API_TOKEN}
+      timeout: 5s
+```
+
+With `enabled=false` (default) the local stub client remains active so development doesn’t require external services.
 
 ## Test
 ```bash
