@@ -238,7 +238,7 @@ Screens planned:
 ## Increment 4 (implemented)
 - Added Google Keep integration boundary module (`integrations/googlekeep`):
   - adapter interface `GoogleKeepClient`
-  - stub implementation `StubGoogleKeepClient`
+  - stub implementation `StubGoogleKeepClient` + optional HTTP adapter configurable via properties
   - bind + sync orchestration service with sync binding/event persistence
   - REST endpoints at `/api/integrations/google-keep`
 - Added notifications/settings foundation:

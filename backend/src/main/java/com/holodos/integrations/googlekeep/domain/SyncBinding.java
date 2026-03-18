@@ -27,6 +27,18 @@ public class SyncBinding extends BaseEntity {
     @Column(name = "last_remote_etag")
     private String lastRemoteEtag;
 
+    @Column(name = "last_error_message")
+    private String lastErrorMessage;
+
+    @Column(name = "failure_count", nullable = false)
+    private int failureCount = 0;
+
+    @Column(name = "next_retry_at")
+    private OffsetDateTime nextRetryAt;
+
+    @Column(name = "last_sync_status")
+    private String lastSyncStatus;
+
     public String getUserKey() { return userKey; }
     public void setUserKey(String userKey) { this.userKey = userKey; }
     public String getProvider() { return provider; }
@@ -39,4 +51,12 @@ public class SyncBinding extends BaseEntity {
     public void setLastSyncedAt(OffsetDateTime lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
     public String getLastRemoteEtag() { return lastRemoteEtag; }
     public void setLastRemoteEtag(String lastRemoteEtag) { this.lastRemoteEtag = lastRemoteEtag; }
+    public String getLastErrorMessage() { return lastErrorMessage; }
+    public void setLastErrorMessage(String lastErrorMessage) { this.lastErrorMessage = lastErrorMessage; }
+    public int getFailureCount() { return failureCount; }
+    public void setFailureCount(int failureCount) { this.failureCount = failureCount; }
+    public OffsetDateTime getNextRetryAt() { return nextRetryAt; }
+    public void setNextRetryAt(OffsetDateTime nextRetryAt) { this.nextRetryAt = nextRetryAt; }
+    public String getLastSyncStatus() { return lastSyncStatus; }
+    public void setLastSyncStatus(String lastSyncStatus) { this.lastSyncStatus = lastSyncStatus; }
 }
