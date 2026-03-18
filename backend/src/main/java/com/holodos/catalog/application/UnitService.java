@@ -37,6 +37,9 @@ public class UnitService {
     }
 
     public void delete(Long id) {
+        if (!unitRepository.existsById(id)) {
+            throw new NotFoundException("Unit not found");
+        }
         unitRepository.deleteById(id);
     }
 

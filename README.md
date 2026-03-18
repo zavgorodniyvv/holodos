@@ -25,7 +25,7 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - JSON backup/export and restore API (`/api/export/json`, `/api/export/restore`)
 - Dataset CSV export endpoints (`/api/export/csv/products`, `/api/export/csv/shopping-list`, `/api/export/csv/operation-log`)
 - Product photo media API with storage adapter boundary (`/api/products/{id}/photo`)
-- Global validation/error format + correlation ID support (including `NOT_FOUND` for missing resources across catalog/inventory/shopping/media flows)
+- Global validation/error format + correlation ID support (including `NOT_FOUND` for missing resources across catalog/inventory/shopping/media flows, including delete operations)
 - Basic unit test for product creation business rule
 
 ## Tech stack

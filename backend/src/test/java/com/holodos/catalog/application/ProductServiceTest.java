@@ -59,6 +59,14 @@ class ProductServiceTest {
         assertThrows(NotFoundException.class, () -> productService.update(99L, baseRequest()));
     }
 
+
+    @Test
+    void deleteFailsWhenProductMissing() {
+        when(productRepository.existsById(100L)).thenReturn(false);
+
+        assertThrows(NotFoundException.class, () -> productService.delete(100L));
+    }
+
     @Test
     void createPersistsProductWhenReferencesExist() {
         ProductUpsertRequest request = baseRequest();

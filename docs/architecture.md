@@ -215,3 +215,8 @@ Screens planned:
 ## Increment 14 (implemented)
 - Expanded not-found semantics beyond media to catalog, inventory, shopping, purchases, notifications, and Google Keep binding lookups.
 - Added unit coverage for representative service-level not-found cases (`ProductService`, `InventoryService`).
+
+
+## Increment 15 (implemented)
+- Hardened catalog delete semantics so delete endpoints no longer silently succeed for absent ids; missing catalog resources now return `NOT_FOUND`.
+- Added focused unit coverage for missing-delete scenarios in `ProductService` and `UnitService`.

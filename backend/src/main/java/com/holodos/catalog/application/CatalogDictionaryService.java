@@ -49,6 +49,9 @@ public class CatalogDictionaryService {
     }
 
     public void deleteStoragePlace(Long id) {
+        if (!storagePlaceRepository.existsById(id)) {
+            throw new NotFoundException("Storage place not found");
+        }
         storagePlaceRepository.deleteById(id);
     }
 
@@ -70,6 +73,9 @@ public class CatalogDictionaryService {
     }
 
     public void deleteCategory(Long id) {
+        if (!categoryRepository.existsById(id)) {
+            throw new NotFoundException("Category not found");
+        }
         categoryRepository.deleteById(id);
     }
 
@@ -91,6 +97,9 @@ public class CatalogDictionaryService {
     }
 
     public void deleteStore(Long id) {
+        if (!storeRepository.existsById(id)) {
+            throw new NotFoundException("Store not found");
+        }
         storeRepository.deleteById(id);
     }
 
