@@ -2,7 +2,8 @@ package com.holodos.purchases.application;
 
 import com.holodos.catalog.domain.StoragePlace;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
-import com.holodos.common.application.OperationLogService;
+import com.holodos.common.application.DomainEventPublisher;
+import com.holodos.common.application.events.OperationLogEvent;
 import com.holodos.inventory.domain.StockEntry;
 import com.holodos.inventory.domain.StockStatus;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
@@ -25,16 +26,16 @@ public class PurchaseService {
     private final PurchaseEventRepository purchaseEventRepository;
     private final StockEntryRepository stockEntryRepository;
     private final StoragePlaceRepository storagePlaceRepository;
-    private final OperationLogService operationLogService;
+    private final DomainEventPublisher domainEventPublisher;
 
     public PurchaseService(ShoppingListItemRepository shoppingListItemRepository, PurchaseEventRepository purchaseEventRepository,
                            StockEntryRepository stockEntryRepository, StoragePlaceRepository storagePlaceRepository,
-                           OperationLogService operationLogService) {
+                           DomainEventPublisher domainEventPublisher) {
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.purchaseEventRepository = purchaseEventRepository;
         this.stockEntryRepository = stockEntryRepository;
         this.storagePlaceRepository = storagePlaceRepository;
-        this.operationLogService = operationLogService;
+        this.domainEventPublisher = domainEventPublisher;
     }
 
     public void processPurchase(ProcessPurchaseRequest request) {
@@ -82,7 +83,7 @@ public class PurchaseService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("productId", item.getProduct().getId());
         payload.put("quantity", request.actualQuantity());
-        operationLogService.log("PURCHASE_PROCESS", "ShoppingListItem", String.valueOf(item.getId()), payload);
+        domainEventPublisher.publish(new OperationLogEvent("PURCHASE_PROCESS", "ShoppingListItem", String.valueOf(item.getId()), payload));
     }
 
     private StoragePlace resolveStorage(ShoppingListItem item, Long storagePlaceId) {

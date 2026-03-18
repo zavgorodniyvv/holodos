@@ -1,12 +1,11 @@
 package com.holodos.inventory.api;
 
 import com.holodos.inventory.api.InventoryDtos.AddStockRequest;
+import com.holodos.inventory.api.InventoryDtos.AdjustStockRequest;
 import com.holodos.inventory.api.InventoryDtos.ConsumeStockRequest;
 import com.holodos.inventory.api.InventoryDtos.MoveStockRequest;
 import com.holodos.inventory.api.InventoryDtos.StockEntryResponse;
 import com.holodos.inventory.application.InventoryService;
-import jakarta.validation.Valid;
-import java.util.List;
 import com.holodos.inventory.domain.StockStatus;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -51,5 +50,10 @@ public class InventoryController {
     @PostMapping("/{id}/move")
     public StockEntryResponse move(@PathVariable Long id, @Valid @RequestBody MoveStockRequest request) {
         return inventoryService.move(id, request);
+    }
+
+    @PostMapping("/{id}/adjust")
+    public StockEntryResponse adjust(@PathVariable Long id, @Valid @RequestBody AdjustStockRequest request) {
+        return inventoryService.adjust(id, request);
     }
 }

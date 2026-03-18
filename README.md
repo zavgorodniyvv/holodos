@@ -46,6 +46,8 @@ mvn test
 - `POST/GET /api/categories`
 - `POST/GET /api/stores`
 - `POST/GET /api/products` (`query` search parameter)
+- `GET/POST /api/stock-entries` with `/consume`, `/discard`, `/move`, `/adjust`
+- `GET /api/movements`
 
 ## Next planned steps
 - implement inventory module (`stock_entries`, movements, adjustments)
@@ -69,8 +71,10 @@ Production-friendly MVP baseline for a mobile-first home inventory + shopping ma
 - Inventory module baseline (`/api/stock-entries`)
 - Shopping list module baseline (`/api/shopping-list`)
 - Purchase processing baseline (`/api/purchases/process`)
+- Auto-replenishment deduplication that merges repeat requests into the existing active shopping entry
 - Movement history endpoint (`/api/movements`)
-- Operation log hooks for inventory/shopping/purchase actions
+- Inventory adjustment endpoint to log manual corrections + movement splitting to avoid negative stock
+- Operation log hooks for inventory/shopping/purchase actions via domain events
 - Filtering + pagination on inventory/shopping/movements list APIs
 - Google Keep integration boundary with stub adapter and sync state persistence
 - Notification/settings APIs + scheduled expiry/old-item checks

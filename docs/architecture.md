@@ -38,6 +38,7 @@ Primary entities:
 - `ShoppingListItem`
 - `PurchaseEvent`
 - `InventoryTransaction`
+- `InventoryAdjustment`
 - `Notification`
 - `SyncBinding`
 - `SyncEvent`
@@ -53,7 +54,7 @@ Core rules:
 ## 4) Database schema proposal (MVP to full)
 - Dictionary tables: `storage_places`, `units`, `categories`, `stores`
 - Catalog table: `products`
-- Inventory tables: `stock_entries`, `inventory_transactions`, `movements`
+- Inventory tables: `stock_entries`, `inventory_transactions`, `movements`, `inventory_adjustments`
 - Shopping tables: `shopping_list_items`, `purchase_events`
 - Notification tables: `notifications`, `notification_settings`
 - Integration tables: `sync_bindings`, `sync_events`
@@ -124,7 +125,7 @@ Planned modules:
 - `auth`, `catalog`, `inventory`, `shopping`, `stores`, `notifications`, `reports`, `integrations`, `media`, `settings`, `common`.
 
 Current implementation:
-- `common` (error model, correlation ID filter, cache/security config, base entity)
+- `common` (error model, correlation ID filter, cache/security config, base entity, domain event publisher + operation log listener)
 - `catalog` (storage places, units, categories, stores, products CRUD)
 
 ## 3) Domain model summary

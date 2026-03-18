@@ -1,6 +1,7 @@
 package com.holodos.inventory.api;
 
 import com.holodos.inventory.domain.StockStatus;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
@@ -29,6 +30,14 @@ public final class InventoryDtos {
         @NotNull @Positive BigDecimal quantity,
         String comment,
         @NotNull String username
+    ) {}
+
+    public record AdjustStockRequest(
+        @NotNull BigDecimal delta,
+        @NotBlank String reason,
+        String comment,
+        @NotNull String username,
+        OffsetDateTime adjustedAt
     ) {}
 
     public record StockEntryResponse(

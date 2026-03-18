@@ -23,27 +23,30 @@ public class S3MediaStorageGateway implements MediaStorageGateway {
     private final S3Client s3Client;
 
     public S3MediaStorageGateway(MediaStorageProperties properties) {
-        MediaStorageProperties.S3 s3 = properties.getS3();
-        if (s3.getBucket() == null || s3.getBucket().isBlank()) {
+        MediaStorageProperties.S3 s3 = properties.s3();
+        if (s3 == null) {
+            throw new IllegalStateException("holodos.media.s3.* configuration is required when provider=S3");
+        }
+        if (s3.bucket() == null || s3.bucket().isBlank()) {
             throw new IllegalStateException("holodos.media.s3.bucket is required when provider=S3");
         }
-        if (s3.getAccessKey() == null || s3.getSecretKey() == null) {
+        if (s3.accessKey() == null || s3.secretKey() == null) {
             throw new IllegalStateException("holodos.media.s3.access-key and secret-key are required when provider=S3");
         }
 
         S3ClientBuilder builder = S3Client.builder()
             .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
-                s3.getAccessKey(),
-                s3.getSecretKey()
+                s3.accessKey(),
+                s3.secretKey()
             )))
-            .region(Region.of(s3.getRegion()))
-            .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(s3.isPathStyleAccess()).build());
+            .region(Region.of(s3.region()))
+            .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(s3.pathStyleAccess()).build());
 
-        if (s3.getEndpoint() != null && !s3.getEndpoint().isBlank()) {
-            builder = builder.endpointOverride(URI.create(s3.getEndpoint()));
+        if (s3.endpoint() != null && !s3.endpoint().isBlank()) {
+            builder = builder.endpointOverride(URI.create(s3.endpoint()));
         }
 
-        this.bucket = s3.getBucket();
+        this.bucket = s3.bucket();
         this.s3Client = builder.build();
     }
 

@@ -18,6 +18,6 @@ public class GoogleKeepRetryScheduler {
     public void retryFailedSyncs() {
         syncBindingRepository.findAll().stream()
             .filter(b -> b.isEnabled())
-            .forEach(b -> googleKeepSyncService.retryLastFailed(b.getUserKey()));
+            .forEach(b -> googleKeepSyncService.syncNow(b.getUserKey()));
     }
 }

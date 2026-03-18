@@ -4,9 +4,6 @@ import com.holodos.media.application.MediaStorageGateway;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.springframework.stereotype.Component;
-
-@Component
 public class FilesystemMediaStorageGateway implements MediaStorageGateway {
 
     private static final String PROVIDER = "FILESYSTEM";

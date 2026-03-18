@@ -40,6 +40,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(error("BAD_REQUEST", ex.getMessage(), List.of()));
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(error("NOT_FOUND", ex.getMessage(), List.of()));
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -6,7 +6,8 @@ import com.holodos.catalog.domain.UnitOfMeasure;
 import com.holodos.catalog.infrastructure.ProductRepository;
 import com.holodos.catalog.infrastructure.StoreRepository;
 import com.holodos.catalog.infrastructure.UnitRepository;
-import com.holodos.common.application.OperationLogService;
+import com.holodos.common.application.DomainEventPublisher;
+import com.holodos.common.application.events.OperationLogEvent;
 import com.holodos.shopping.api.ShoppingDtos.ShoppingItemResponse;
 import com.holodos.shopping.api.ShoppingDtos.ShoppingItemUpsertRequest;
 import com.holodos.shopping.domain.ShoppingItemSource;
@@ -30,16 +31,16 @@ public class ShoppingListService {
     private final ProductRepository productRepository;
     private final UnitRepository unitRepository;
     private final StoreRepository storeRepository;
-    private final OperationLogService operationLogService;
+    private final DomainEventPublisher domainEventPublisher;
 
     public ShoppingListService(ShoppingListItemRepository shoppingListItemRepository, ProductRepository productRepository,
                                UnitRepository unitRepository, StoreRepository storeRepository,
-                               OperationLogService operationLogService) {
+                               DomainEventPublisher domainEventPublisher) {
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.productRepository = productRepository;
         this.unitRepository = unitRepository;
         this.storeRepository = storeRepository;
-        this.operationLogService = operationLogService;
+        this.domainEventPublisher = domainEventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -59,7 +60,8 @@ public class ShoppingListService {
         apply(item, request);
         item.setStatus(ShoppingItemStatus.ACTIVE);
         ShoppingListItem saved = shoppingListItemRepository.save(item);
-        operationLogService.log("SHOPPING_CREATE", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("title", saved.getTitle(), "source", saved.getSource().name()));
+        domainEventPublisher.publish(new OperationLogEvent("SHOPPING_CREATE", "ShoppingListItem", String.valueOf(saved.getId()),
+            Map.of("title", saved.getTitle(), "source", saved.getSource().name())));
         return map(saved);
     }
 
@@ -67,7 +69,8 @@ public class ShoppingListService {
         ShoppingListItem item = shoppingListItemRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Shopping item not found"));
         apply(item, request);
         ShoppingListItem saved = shoppingListItemRepository.save(item);
-        operationLogService.log("SHOPPING_UPDATE", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("title", saved.getTitle()));
+        domainEventPublisher.publish(new OperationLogEvent("SHOPPING_UPDATE", "ShoppingListItem", String.valueOf(saved.getId()),
+            Map.of("title", saved.getTitle())));
         return map(saved);
     }
 
@@ -76,27 +79,37 @@ public class ShoppingListService {
         item.setStatus(ShoppingItemStatus.COMPLETED);
         item.setCompletedAt(OffsetDateTime.now());
         ShoppingListItem saved = shoppingListItemRepository.save(item);
-        operationLogService.log("SHOPPING_COMPLETE", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("completed", true));
+        domainEventPublisher.publish(new OperationLogEvent("SHOPPING_COMPLETE", "ShoppingListItem", String.valueOf(saved.getId()),
+            Map.of("completed", true)));
     }
 
     public void autoAddIfMissing(Product product, BigDecimal quantity) {
         if (!product.isAutoAddShopping()) {
             return;
         }
-        if (shoppingListItemRepository.findFirstByProductIdAndStatus(product.getId(), ShoppingItemStatus.ACTIVE).isPresent()) {
-            return;
+        ShoppingListItem existing = shoppingListItemRepository.findFirstByProductIdAndStatus(product.getId(), ShoppingItemStatus.ACTIVE)
+            .orElse(null);
+        boolean merged = false;
+        ShoppingListItem item;
+        if (existing != null) {
+            BigDecimal current = existing.getQuantity() == null ? BigDecimal.ZERO : existing.getQuantity();
+            existing.setQuantity(current.add(quantity));
+            item = existing;
+            merged = true;
+        } else {
+            item = new ShoppingListItem();
+            item.setProduct(product);
+            item.setTitle(product.getName());
+            item.setQuantity(quantity);
+            item.setUnit(product.getDefaultUnit());
+            item.setStore(product.getDefaultStore());
+            item.setSource(ShoppingItemSource.AUTO_REPLENISHMENT);
+            item.setStatus(ShoppingItemStatus.ACTIVE);
+            item.setSortOrder(0);
         }
-        ShoppingListItem item = new ShoppingListItem();
-        item.setProduct(product);
-        item.setTitle(product.getName());
-        item.setQuantity(quantity);
-        item.setUnit(product.getDefaultUnit());
-        item.setStore(product.getDefaultStore());
-        item.setSource(ShoppingItemSource.AUTO_REPLENISHMENT);
-        item.setStatus(ShoppingItemStatus.ACTIVE);
-        item.setSortOrder(0);
         ShoppingListItem saved = shoppingListItemRepository.save(item);
-        operationLogService.log("SHOPPING_AUTO_ADD", "ShoppingListItem", String.valueOf(saved.getId()), Map.of("productId", product.getId(), "quantity", quantity));
+        domainEventPublisher.publish(new OperationLogEvent("SHOPPING_AUTO_ADD", "ShoppingListItem", String.valueOf(saved.getId()),
+            Map.of("productId", product.getId(), "quantity", quantity, "merged", merged)));
     }
 
     private void apply(ShoppingListItem item, ShoppingItemUpsertRequest request) {

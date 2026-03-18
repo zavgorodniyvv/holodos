@@ -12,11 +12,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/export")
 public class BackupController {
     private final BackupService backupService;
-    private final CsvExportService csvExportService;
-
-    public BackupController(BackupService backupService, CsvExportService csvExportService) {
-        this.backupService = backupService;
-        this.csvExportService = csvExportService;
 
     public BackupController(BackupService backupService) {
         this.backupService = backupService;
