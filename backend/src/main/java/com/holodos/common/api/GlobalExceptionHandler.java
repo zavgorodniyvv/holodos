@@ -1,6 +1,5 @@
 package com.holodos.common.api;
 
-import com.holodos.common.domain.NotFoundException;
 import com.holodos.common.infrastructure.CorrelationIdFilter;
 import jakarta.validation.ConstraintViolationException;
 import java.time.OffsetDateTime;
@@ -33,12 +32,6 @@ public class GlobalExceptionHandler {
     ResponseEntity<ErrorResponse> handleConstraint(ConstraintViolationException ex) {
         List<String> details = ex.getConstraintViolations().stream().map(v -> v.getMessage()).toList();
         return ResponseEntity.badRequest().body(error("VALIDATION_ERROR", "Request validation failed", details));
-    }
-
-
-    @ExceptionHandler(NotFoundException.class)
-    ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error("NOT_FOUND", ex.getMessage(), List.of()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
