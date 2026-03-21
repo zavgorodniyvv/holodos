@@ -15,7 +15,7 @@ public abstract class BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", columnDefinition = "BIGINT")
+    @Column(name = "id")
     private Long id;
 
     @CreationTimestamp
