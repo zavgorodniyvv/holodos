@@ -147,6 +147,14 @@ cd backend
 mvn test
 ```
 
+## Mobile app (Flutter)
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+Подробности и структура описаны в `mobile/README.md`.
+
 ## Next steps
 - Real Google Keep adapter behind existing integration interface
 - Enhanced sync retry/diagnostics + Keep inbound processing

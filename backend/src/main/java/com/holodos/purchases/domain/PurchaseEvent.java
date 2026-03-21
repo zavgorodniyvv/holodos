@@ -14,6 +14,7 @@ import java.time.OffsetDateTime;
 public class PurchaseEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", columnDefinition = "BIGINT")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

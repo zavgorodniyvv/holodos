@@ -8,6 +8,7 @@ import java.time.OffsetDateTime;
 public class OperationLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", columnDefinition = "BIGINT")
     private Long id;
 
     @Column(name = "event_type", nullable = false)

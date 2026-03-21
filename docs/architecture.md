@@ -266,3 +266,4 @@ Screens planned:
   - `/api/export/restore`
 - Implemented JSON snapshot for dictionaries/products/shopping items and controlled restore flow.
 - Added initial unit tests for export and restore service behavior.
+- Added Flutter mobile scaffold (`mobile/`): Riverpod shell, dashboard/inventory/shopping placeholders, offline SQLite queue stubs, API client boilerplate.
