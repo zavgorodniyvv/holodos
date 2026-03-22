@@ -30,7 +30,7 @@ public class MovementController {
         @RequestParam(required = false) Long toStoragePlaceId,
         @PageableDefault(size = 20) Pageable pageable
     ) {
-        Specification<com.holodos.inventory.domain.InventoryMovement> spec = Specification.where((Specification<com.holodos.inventory.domain.InventoryMovement>) null);
+        Specification<com.holodos.inventory.domain.InventoryMovement> spec = (root, q, cb) -> cb.conjunction();
         if (fromStoragePlaceId != null) {
             spec = spec.and((root, q, cb) -> cb.equal(root.get("fromStoragePlace").get("id"), fromStoragePlaceId));
         }

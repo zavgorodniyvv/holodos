@@ -36,3 +36,14 @@ holodos:
   api:
     default-page-size: 20
     max-page-size: 100
+  media:
+    root-path: ${java.io.tmpdir}/holodos-media
+    # To use MinIO (S3-compatible) instead of filesystem, uncomment:
+    # provider: S3
+    # s3:
+    #   bucket: holodos-media
+    #   access-key: holodos
+    #   secret-key: holodos123
+    #   region: us-east-1
+    #   endpoint: http://localhost:9000
+    #   path-style-access: true

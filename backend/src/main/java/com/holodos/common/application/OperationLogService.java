@@ -1,7 +1,7 @@
 package com.holodos.common.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.holodos.common.domain.OperationLog;
 import com.holodos.common.infrastructure.CorrelationIdFilter;
 import com.holodos.common.infrastructure.OperationLogRepository;
@@ -32,7 +32,7 @@ public class OperationLogService {
     private String toJson(Map<String, Object> payload) {
         try {
             return payload == null ? null : objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return "{\"error\":\"payload_serialization_failed\"}";
         }
     }
