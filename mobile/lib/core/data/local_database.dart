@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -15,8 +16,9 @@ class LocalDatabase {
 
   Future<Database> get database async {
     if (_db != null) return _db!;
-    final dir = await getApplicationDocumentsDirectory();
-    final path = join(dir.path, 'holodos.db');
+    final path = kIsWeb
+        ? 'holodos.db'
+        : join((await getApplicationDocumentsDirectory()).path, 'holodos.db');
     _db = await openDatabase(
       path,
       version: 2,

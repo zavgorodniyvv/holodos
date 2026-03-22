@@ -67,8 +67,10 @@ final shoppingItemsProvider =
   }
 
   // Filtered fetch — go directly to API.
+  // 'ALL' means no status filter; null defaults to 'ACTIVE' only in the
+  // cache-first branch above, so here we fall through with explicit status.
   final remote = await repo.apiClient.fetchShoppingItems(
-    status: filter.status ?? 'ACTIVE',
+    status: filter.status == 'ALL' ? null : (filter.status ?? 'ACTIVE'),
     storeId: filter.storeId,
     search: filter.search.isNotEmpty ? filter.search : null,
   );

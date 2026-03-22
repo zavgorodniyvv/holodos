@@ -58,7 +58,7 @@ public class InventoryService {
 
     @Transactional(readOnly = true)
     public Page<StockEntryResponse> list(StockStatus status, Long storagePlaceId, String search, Pageable pageable) {
-        Specification<StockEntry> spec = Specification.where((Specification<StockEntry>) null);
+        Specification<StockEntry> spec = (root, q, cb) -> cb.conjunction();
         if (status != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
         if (storagePlaceId != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("storagePlace").get("id"), storagePlaceId));
         if (search != null && !search.isBlank()) {

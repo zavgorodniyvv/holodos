@@ -45,7 +45,7 @@ public class ShoppingListService {
 
     @Transactional(readOnly = true)
     public Page<ShoppingItemResponse> list(ShoppingItemStatus status, Long storeId, String search, Pageable pageable) {
-        Specification<ShoppingListItem> spec = Specification.where((Specification<ShoppingListItem>) null);
+        Specification<ShoppingListItem> spec = (root, q, cb) -> cb.conjunction();
         if (status != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), status));
         if (storeId != null) spec = spec.and((root, q, cb) -> cb.equal(root.get("store").get("id"), storeId));
         if (search != null && !search.isBlank()) {
