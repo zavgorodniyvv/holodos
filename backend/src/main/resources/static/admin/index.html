@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holodos Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        html, body { height: 100%; margin: 0; }
+        body { display: flex; overflow: hidden; background: #f8fafc; }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: #1e293b;
+            color: #cbd5e1;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-brand {
+            padding: 1.1rem 1rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            border-bottom: 1px solid #334155;
+        }
+        .sidebar-brand span { color: #38bdf8; }
+        .sidebar nav { margin-top: 0.5rem; }
+        .sidebar nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.6rem 1rem;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.88rem;
+            transition: background 0.12s;
+        }
+        .sidebar nav a:hover { background: #334155; color: #f1f5f9; }
+        .sidebar nav a.active { background: #0369a1; color: #fff; }
+        .sidebar nav a i { font-size: 0.95rem; width: 1.1rem; text-align: center; }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .topbar h5 { margin: 0; font-weight: 600; font-size: 1rem; color: #1e293b; }
+        .content { flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem; }
+
+        .table th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .table td { vertical-align: middle; font-size: 0.875rem; }
+        .color-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.15);
+            vertical-align: middle;
+        }
+        .badge-yes { background: #dcfce7; color: #166534; font-weight: 500; }
+        .badge-no  { background: #fee2e2; color: #991b1b; font-weight: 500; }
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-brand">🧊 <span>Holodos</span> Admin</div>
+    <nav>
+        <a href="#" data-section="categories" class="active">
+            <i class="bi bi-tags"></i> Категории
+        </a>
+        <a href="#" data-section="storage-places">
+            <i class="bi bi-archive"></i> Места хранения
+        </a>
+        <a href="#" data-section="stores">
+            <i class="bi bi-shop"></i> Магазины
+        </a>
+        <a href="#" data-section="units">
+            <i class="bi bi-rulers"></i> Единицы изм.
+        </a>
+        <a href="#" data-section="products">
+            <i class="bi bi-box-seam"></i> Продукты
+        </a>
+    </nav>
+</div>
+
+<div class="main">
+    <div class="topbar">
+        <h5 id="section-title">Категории</h5>
+        <div class="d-flex align-items-center gap-2">
+            <div id="search-box" class="input-group input-group-sm" style="width:240px; display:none!important">
+                <input id="search-input" class="form-control" placeholder="Поиск продукта...">
+                <button class="btn btn-outline-secondary" onclick="searchProducts()">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openCreateModal()">
+                <i class="bi bi-plus-lg me-1"></i>Добавить
+            </button>
+        </div>
+    </div>
+    <div class="content">
+        <div id="table-container"></div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+                <h6 class="modal-title mb-0" id="modal-title"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="saveItem()">
+                    <i class="bi bi-check2 me-1"></i>Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+'use strict';
+
+const API = '/api';
+let currentSection = 'categories';
+let editingId = null;
+let editModal;
+let currentItems = [];
+let productSearchQuery = '';
+
+// ── Dropdown caches ──────────────────────────────────────────────────────────
+let _cats = [], _units = [], _places = [], _stores = [];
+
+async function loadDropdowns() {
+    [_cats, _units, _places, _stores] = await Promise.all([
+        apiFetch('categories'),
+        apiFetch('units'),
+        apiFetch('storage-places'),
+        apiFetch('stores'),
+    ]);
+}
+
+function clearDropdownCache() {
+    _cats = []; _units = []; _places = []; _stores = [];
+}
+
+// ── Section config ───────────────────────────────────────────────────────────
+const DICT_COLUMNS = ['ID', 'Название', 'Описание', 'Иконка', 'Цвет', 'Порядок', 'Активно'];
+
+function dictRow(r) {
+    return `<td>${r.id}</td>
+            <td><strong>${esc(r.name)}</strong></td>
+            <td class="text-muted">${esc(r.description || '')}</td>
+            <td>${r.icon ? `<span style="font-size:1.2em">${esc(r.icon)}</span>` : '—'}</td>
+            <td>${colorCell(r.color)}</td>
+            <td>${r.sortOrder}</td>
+            <td>${boolBadge(r.active)}</td>`;
+}
+
+function buildDictBody(fd) {
+    return {
+        name: fd.get('name'),
+        description: fd.get('description') || null,
+        icon: fd.get('icon') || null,
+        color: fd.get('color') || null,
+        sortOrder: parseInt(fd.get('sortOrder')) || 0,
+        active: fd.get('active') === 'on',
+    };
+}
+
+const sections = {
+    categories: {
+        title: 'Категории',
+        endpoint: 'categories',
+        columns: DICT_COLUMNS,
+        renderRow: dictRow,
+        renderForm: (r) => dictionaryForm(r),
+        buildBody: buildDictBody,
+    },
+    'storage-places': {
+        title: 'Места хранения',
+        endpoint: 'storage-places',
+        columns: DICT_COLUMNS,
+        renderRow: dictRow,
+        renderForm: (r) => dictionaryForm(r),
+        buildBody: buildDictBody,
+    },
+    stores: {
+        title: 'Магазины',
+        endpoint: 'stores',
+        columns: DICT_COLUMNS,
+        renderRow: dictRow,
+        renderForm: (r) => dictionaryForm(r),
+        buildBody: buildDictBody,
+    },
+    units: {
+        title: 'Единицы измерения',
+        endpoint: 'units',
+        columns: ['ID', 'Код', 'Название', 'Краткое', 'Тип', 'Активна'],
+        renderRow: (r) => `
+            <td>${r.id}</td>
+            <td><code>${esc(r.code)}</code></td>
+            <td>${esc(r.name)}</td>
+            <td>${esc(r.shortName)}</td>
+            <td><span class="badge bg-secondary text-white">${r.unitType}</span></td>
+            <td>${boolBadge(r.active)}</td>`,
+        renderForm: (r) => unitForm(r),
+        buildBody: (fd) => ({
+            code: fd.get('code'),
+            name: fd.get('name'),
+            shortName: fd.get('shortName'),
+            unitType: fd.get('unitType'),
+            active: fd.get('active') === 'on',
+        }),
+    },
+    products: {
+        title: 'Продукты',
+        endpoint: 'products',
+        paginated: true,
+        columns: ['ID', 'Название', 'Категория', 'Ед. изм.', 'Место хранения', 'Магазин', 'Активен'],
+        renderRow: (r) => `
+            <td>${r.id}</td>
+            <td><strong>${esc(r.name)}</strong></td>
+            <td>${esc(r.categoryName || '—')}</td>
+            <td>${esc(r.defaultUnitName || '—')}</td>
+            <td>${esc(r.defaultStoragePlaceName || '—')}</td>
+            <td>${esc(r.defaultStoreName || '—')}</td>
+            <td>${boolBadge(r.active)}</td>`,
+        renderForm: (r) => productForm(r),
+        buildBody: (fd) => ({
+            name: fd.get('name'),
+            categoryId: parseInt(fd.get('categoryId')),
+            defaultUnitId: parseInt(fd.get('defaultUnitId')),
+            defaultStoragePlaceId: parseInt(fd.get('defaultStoragePlaceId')),
+            defaultStoreId: fd.get('defaultStoreId') ? parseInt(fd.get('defaultStoreId')) : null,
+            description: fd.get('description') || null,
+            shelfLifeDays: fd.get('shelfLifeDays') ? parseInt(fd.get('shelfLifeDays')) : null,
+            minimumQuantityThreshold: fd.get('minimumQuantityThreshold') ? parseFloat(fd.get('minimumQuantityThreshold')) : null,
+            reorderQuantity: fd.get('reorderQuantity') ? parseFloat(fd.get('reorderQuantity')) : null,
+            autoAddShopping: fd.get('autoAddShopping') === 'on',
+            barcode: fd.get('barcode') || null,
+            note: fd.get('note') || null,
+            active: fd.get('active') === 'on',
+        }),
+    },
+};
+
+// ── Form builders ─────────────────────────────────────────────────────────────
+function dictionaryForm(r) {
+    return `
+    <form id="edit-form" class="row g-3">
+        <div class="col-12">
+            <label class="form-label fw-semibold">Название <span class="text-danger">*</span></label>
+            <input name="name" class="form-control" value="${esc(r.name || '')}" required autofocus>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Описание</label>
+            <input name="description" class="form-control" value="${esc(r.description || '')}">
+        </div>
+        <div class="col-6">
+            <label class="form-label">Иконка (эмодзи)</label>
+            <input name="icon" class="form-control" placeholder="🥗" value="${esc(r.icon || '')}">
+        </div>
+        <div class="col-6">
+            <label class="form-label">Цвет</label>
+            <div class="input-group">
+                <input type="color" id="colorPicker" name="color"
+                       class="form-control form-control-color"
+                       value="${r.color || '#6c757d'}"
+                       oninput="document.getElementById('colorHex').value=this.value">
+                <input type="text" id="colorHex" class="form-control font-monospace"
+                       value="${r.color || '#6c757d'}" maxlength="7" placeholder="#6c757d"
+                       oninput="document.getElementById('colorPicker').value=this.value">
+            </div>
+        </div>
+        <div class="col-6">
+            <label class="form-label">Порядок сортировки</label>
+            <input type="number" name="sortOrder" class="form-control" value="${r.sortOrder ?? 0}" min="0">
+        </div>
+        <div class="col-6 d-flex align-items-end pb-1">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="active" id="chkActive" ${r.active !== false ? 'checked' : ''}>
+                <label class="form-check-label" for="chkActive">Активно</label>
+            </div>
+        </div>
+    </form>`;
+}
+
+function unitForm(r) {
+    const types = ['COUNT', 'WEIGHT', 'VOLUME', 'PACKAGING', 'OTHER'];
+    const labels = { COUNT: 'Штучная', WEIGHT: 'Масса', VOLUME: 'Объём', PACKAGING: 'Упаковка', OTHER: 'Другое' };
+    return `
+    <form id="edit-form" class="row g-3">
+        <div class="col-4">
+            <label class="form-label fw-semibold">Код <span class="text-danger">*</span></label>
+            <input name="code" class="form-control font-monospace" value="${esc(r.code || '')}" required autofocus>
+        </div>
+        <div class="col-4">
+            <label class="form-label fw-semibold">Краткое <span class="text-danger">*</span></label>
+            <input name="shortName" class="form-control" value="${esc(r.shortName || '')}" required>
+        </div>
+        <div class="col-4">
+            <label class="form-label fw-semibold">Тип <span class="text-danger">*</span></label>
+            <select name="unitType" class="form-select" required>
+                ${types.map(t => `<option value="${t}" ${r.unitType === t ? 'selected' : ''}>${labels[t]}</option>`).join('')}
+            </select>
+        </div>
+        <div class="col-8">
+            <label class="form-label fw-semibold">Полное название <span class="text-danger">*</span></label>
+            <input name="name" class="form-control" value="${esc(r.name || '')}" required>
+        </div>
+        <div class="col-4 d-flex align-items-end pb-1">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="active" id="chkActive" ${r.active !== false ? 'checked' : ''}>
+                <label class="form-check-label" for="chkActive">Активна</label>
+            </div>
+        </div>
+    </form>`;
+}
+
+async function productForm(r) {
+    if (!_cats.length || !_units.length || !_places.length) await loadDropdowns();
+
+    function opts(items, selectedId, emptyLabel) {
+        return `<option value="">${emptyLabel}</option>` +
+            items.map(i => `<option value="${i.id}" ${i.id == selectedId ? 'selected' : ''}>${esc(i.name)}${i.shortName ? ` (${esc(i.shortName)})` : ''}</option>`).join('');
+    }
+
+    return `
+    <form id="edit-form" class="row g-3">
+        <div class="col-12">
+            <label class="form-label fw-semibold">Название <span class="text-danger">*</span></label>
+            <input name="name" class="form-control" value="${esc(r.name || '')}" required autofocus>
+        </div>
+        <div class="col-6">
+            <label class="form-label fw-semibold">Категория <span class="text-danger">*</span></label>
+            <select name="categoryId" class="form-select" required>
+                ${opts(_cats, r.categoryId, '— выберите —')}
+            </select>
+        </div>
+        <div class="col-6">
+            <label class="form-label fw-semibold">Единица измерения <span class="text-danger">*</span></label>
+            <select name="defaultUnitId" class="form-select" required>
+                ${opts(_units, r.defaultUnitId, '— выберите —')}
+            </select>
+        </div>
+        <div class="col-6">
+            <label class="form-label fw-semibold">Место хранения <span class="text-danger">*</span></label>
+            <select name="defaultStoragePlaceId" class="form-select" required>
+                ${opts(_places, r.defaultStoragePlaceId, '— выберите —')}
+            </select>
+        </div>
+        <div class="col-6">
+            <label class="form-label">Магазин (по умолчанию)</label>
+            <select name="defaultStoreId" class="form-select">
+                ${opts(_stores, r.defaultStoreId, '— не выбран —')}
+            </select>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Описание</label>
+            <textarea name="description" class="form-control" rows="2">${esc(r.description || '')}</textarea>
+        </div>
+        <div class="col-4">
+            <label class="form-label">Срок хранения (дней)</label>
+            <input type="number" name="shelfLifeDays" class="form-control" min="1" value="${r.shelfLifeDays || ''}">
+        </div>
+        <div class="col-4">
+            <label class="form-label">Мин. остаток</label>
+            <input type="number" step="0.001" name="minimumQuantityThreshold" class="form-control" value="${r.minimumQuantityThreshold || ''}">
+        </div>
+        <div class="col-4">
+            <label class="form-label">Кол-во дозаказа</label>
+            <input type="number" step="0.001" name="reorderQuantity" class="form-control" value="${r.reorderQuantity || ''}">
+        </div>
+        <div class="col-6">
+            <label class="form-label">Штрихкод</label>
+            <input name="barcode" class="form-control font-monospace" value="${esc(r.barcode || '')}">
+        </div>
+        <div class="col-6">
+            <label class="form-label">Заметка</label>
+            <input name="note" class="form-control" value="${esc(r.note || '')}">
+        </div>
+        <div class="col-12 d-flex gap-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="autoAddShopping" id="chkAutoAdd" ${r.autoAddShopping !== false ? 'checked' : ''}>
+                <label class="form-check-label" for="chkAutoAdd">Авто-добавление в список покупок</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="active" id="chkActive" ${r.active !== false ? 'checked' : ''}>
+                <label class="form-check-label" for="chkActive">Активен</label>
+            </div>
+        </div>
+    </form>`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+    return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function colorCell(c) {
+    if (!c) return '<span class="text-muted">—</span>';
+    return `<span class="color-dot me-1" style="background:${c}"></span><code style="font-size:0.75em">${esc(c)}</code>`;
+}
+
+function boolBadge(v) {
+    return v
+        ? '<span class="badge badge-yes">Да</span>'
+        : '<span class="badge badge-no">Нет</span>';
+}
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+    const res = await fetch(`${API}/${path}`, opts);
+    if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try { const e = await res.json(); msg = e.message || e.error || msg; } catch {}
+        throw new Error(msg);
+    }
+    if (res.status === 204 || opts.method === 'DELETE') return null;
+    return res.json();
+}
+
+// ── Load section ──────────────────────────────────────────────────────────────
+async function loadSection(section) {
+    currentSection = section;
+    productSearchQuery = '';
+    const cfg = sections[section];
+
+    document.getElementById('section-title').textContent = cfg.title;
+    document.querySelectorAll('.sidebar nav a').forEach(a =>
+        a.classList.toggle('active', a.dataset.section === section)
+    );
+    document.getElementById('search-box').style.display =
+        section === 'products' ? 'flex' : 'none';
+    document.getElementById('search-input').value = '';
+
+    setTableLoading();
+    try {
+        const items = await fetchItems(section, '');
+        currentItems = items;
+        renderTable(section, items);
+    } catch (e) {
+        document.getElementById('table-container').innerHTML =
+            `<div class="alert alert-danger">Ошибка загрузки: ${e.message}</div>`;
+    }
+}
+
+async function fetchItems(section, search) {
+    const cfg = sections[section];
+    if (cfg.paginated) {
+        const q = search ? `&search=${encodeURIComponent(search)}` : '';
+        const data = await apiFetch(`${cfg.endpoint}?page=0&size=200${q}`);
+        return data.content;
+    }
+    return apiFetch(cfg.endpoint);
+}
+
+function setTableLoading() {
+    document.getElementById('table-container').innerHTML =
+        '<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Загрузка...</div>';
+}
+
+function renderTable(section, items) {
+    const cfg = sections[section];
+    const thead = cfg.columns.map(c => `<th>${c}</th>`).join('') + '<th style="width:90px"></th>';
+    const tbody = items.length
+        ? items.map(item => `
+            <tr>
+                ${cfg.renderRow(item)}
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary me-1 py-0 px-1"
+                            onclick="openEditModal(${item.id})" title="Редактировать">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-1"
+                            onclick="confirmDelete(${item.id}, '${esc(item.name || item.code || item.id)}')"
+                            title="Удалить">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`).join('')
+        : `<tr><td colspan="99" class="text-center text-muted py-4">Нет записей</td></tr>`;
+
+    document.getElementById('table-container').innerHTML = `
+        <p class="text-muted small mb-2">Записей: ${items.length}</p>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light"><tr>${thead}</tr></thead>
+                <tbody>${tbody}</tbody>
+            </table>
+        </div>`;
+}
+
+async function searchProducts() {
+    productSearchQuery = document.getElementById('search-input').value.trim();
+    setTableLoading();
+    try {
+        const items = await fetchItems('products', productSearchQuery);
+        currentItems = items;
+        renderTable('products', items);
+    } catch (e) {
+        showToast(`Ошибка поиска: ${e.message}`, 'danger');
+    }
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+async function openCreateModal() {
+    editingId = null;
+    const cfg = sections[currentSection];
+    document.getElementById('modal-title').textContent = `Добавить — ${cfg.title}`;
+    document.getElementById('modal-body').innerHTML =
+        '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>';
+    editModal.show();
+    try {
+        document.getElementById('modal-body').innerHTML = await cfg.renderForm({});
+    } catch (e) {
+        document.getElementById('modal-body').innerHTML =
+            `<div class="alert alert-danger">Ошибка загрузки формы: ${e.message}</div>`;
+    }
+}
+
+async function openEditModal(id) {
+    const item = currentItems.find(i => i.id === id);
+    if (!item) { showToast('Элемент не найден', 'warning'); return; }
+    editingId = id;
+    const cfg = sections[currentSection];
+    document.getElementById('modal-title').textContent = `Редактировать — ${cfg.title}`;
+    document.getElementById('modal-body').innerHTML =
+        '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>';
+    editModal.show();
+    try {
+        document.getElementById('modal-body').innerHTML = await cfg.renderForm(item);
+    } catch (e) {
+        document.getElementById('modal-body').innerHTML =
+            `<div class="alert alert-danger">Ошибка загрузки формы: ${e.message}</div>`;
+    }
+}
+
+async function saveItem() {
+    const formEl = document.getElementById('edit-form');
+    if (!formEl || !formEl.reportValidity()) return;
+
+    const cfg = sections[currentSection];
+    const body = cfg.buildBody(new FormData(formEl));
+
+    const saveBtn = document.querySelector('#editModal .btn-primary');
+    saveBtn.disabled = true;
+    try {
+        if (editingId) {
+            await apiFetch(`${cfg.endpoint}/${editingId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            showToast('Изменения сохранены', 'success');
+        } else {
+            await apiFetch(cfg.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            showToast('Запись создана', 'success');
+        }
+        editModal.hide();
+        if (currentSection !== 'products') clearDropdownCache();
+        await loadSection(currentSection);
+    } catch (e) {
+        showToast(`Ошибка: ${e.message}`, 'danger');
+    } finally {
+        saveBtn.disabled = false;
+    }
+}
+
+function confirmDelete(id, name) {
+    if (!confirm(`Удалить «${name}»?\n\nОперация необратима.`)) return;
+    deleteItem(id);
+}
+
+async function deleteItem(id) {
+    const cfg = sections[currentSection];
+    try {
+        await fetch(`${API}/${cfg.endpoint}/${id}`, { method: 'DELETE' });
+        showToast('Запись удалена', 'success');
+        if (currentSection !== 'products') clearDropdownCache();
+        await loadSection(currentSection);
+    } catch (e) {
+        showToast(`Ошибка удаления: ${e.message}`, 'danger');
+    }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+    const id = 'toast_' + Date.now();
+    const bgMap = { success: 'bg-success', danger: 'bg-danger', warning: 'bg-warning text-dark' };
+    const bg = bgMap[type] || 'bg-secondary';
+    document.getElementById('toastContainer').insertAdjacentHTML('beforeend', `
+        <div id="${id}" class="toast align-items-center text-white ${bg} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${esc(msg)}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>`);
+    const el = document.getElementById(id);
+    const t = new bootstrap.Toast(el, { delay: 3000 });
+    t.show();
+    el.addEventListener('hidden.bs.toast', () => el.remove());
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    editModal = new bootstrap.Modal(document.getElementById('editModal'));
+
+    document.querySelectorAll('.sidebar nav a').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            loadSection(a.dataset.section);
+        });
+    });
+
+    document.getElementById('search-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') searchProducts();
+    });
+
+    // Enter в модалке сохраняет
+    document.getElementById('editModal').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') saveItem();
+    });
+
+    loadSection('categories');
+});
+</script>
+</body>
+</html>
