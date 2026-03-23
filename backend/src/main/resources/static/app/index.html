@@ -934,37 +934,59 @@ var App = (function() {
     actionShoppingId: null
   };
 
-  /* ── querySelectorAll helper (iOS 9: NodeList has no forEach) ── */
-  function qsa(sel) {
-    return Array.prototype.slice.call(document.querySelectorAll(sel));
+  /* ── querySelectorAll helper — простой for-loop, без slice ────── */
+  function each(sel, fn) {
+    var els = document.querySelectorAll(sel);
+    for (var i = 0; i < els.length; i++) fn(els[i]);
   }
 
-  /* ── API ──────────────────────────────────────────────────────── */
-  function api(path, opts) {
-    return fetch(API + '/' + path, opts || {}).then(function(res) {
-      if (res.status === 204) return null;
-      return res.json().then(function(data) {
-        if (!res.ok) throw new Error(data.message || ('Ошибка ' + res.status));
-        return data;
-      });
+  /* ── API (XHR — fetch не поддерживается в iOS 9) ─────────────── */
+  function api(path, method, body) {
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open(method || 'GET', API + '/' + path, true);
+      if (body !== undefined) {
+        xhr.setRequestHeader('Content-Type', 'application/json');
+      }
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status === 204 || xhr.status === 205) { resolve(null); return; }
+        var data;
+        try { data = JSON.parse(xhr.responseText); } catch(e) { data = null; }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data);
+        } else {
+          reject(new Error((data && data.message) || ('Ошибка ' + xhr.status)));
+        }
+      };
+      xhr.onerror = function() { reject(new Error('Нет соединения с сервером')); };
+      xhr.send(body !== undefined ? JSON.stringify(body) : null);
     });
   }
-  function apiGet(p)       { return api(p); }
-  function apiPost(p, b)   { return api(p, { method:'POST',   headers:{'Content-Type':'application/json'}, body:JSON.stringify(b) }); }
-  function apiPut(p, b)    { return api(p, { method:'PUT',    headers:{'Content-Type':'application/json'}, body:JSON.stringify(b) }); }
-  function apiDelete(p)    { return api(p, { method:'DELETE' }); }
+  function apiGet(p)     { return api(p, 'GET'); }
+  function apiPost(p, b) { return api(p, 'POST',   b); }
+  function apiPut(p, b)  { return api(p, 'PUT',    b); }
+  function apiDelete(p)  { return api(p, 'DELETE'); }
 
   /* ── Init ─────────────────────────────────────────────────────── */
+  function showError(msg) {
+    document.getElementById('loading-overlay').innerHTML =
+      '<div style="color:#fca5a5;font-size:1rem;padding:30px;text-align:center">' +
+      'Не удалось подключиться к серверу.<br><br>' + String(msg) + '<br><br>' +
+      '<button onclick="window.location.reload()" style="background:#38bdf8;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:1rem">Повторить</button>' +
+      '</div>';
+  }
+
   function init() {
-    loadAll()
-      .then(function() {
-        document.getElementById('loading-overlay').style.display = 'none';
-      })
-      .catch(function(e) {
-        document.getElementById('loading-overlay').innerHTML =
-          '<div style="color:#fca5a5;font-size:1rem;padding:30px;text-align:center">' +
-          'Не удалось подключиться к серверу.<br><br>' + esc(e.message) + '</div>';
-      });
+    try {
+      loadAll()
+        .then(function() {
+          document.getElementById('loading-overlay').style.display = 'none';
+        })
+        .catch(function(e) { showError(e.message); });
+    } catch(e) {
+      showError(e.message);
+    }
   }
 
   function loadAll() {
@@ -1086,16 +1108,11 @@ var App = (function() {
 
   function showTab(tab) {
     state.currentTab = tab;
-    /* iOS 9: use Array.prototype.slice on NodeList, not .forEach directly */
-    qsa('.tab-pane').forEach(function(el) {
+    each('.tab-pane', function(el) {
       el.style.display = (el.id === 'tab-' + tab) ? 'block' : 'none';
     });
-    qsa('.nav-tab').forEach(function(el) {
-      if (el.getAttribute('data-tab') === tab) {
-        el.className = 'nav-tab active';
-      } else {
-        el.className = 'nav-tab';
-      }
+    each('.nav-tab', function(el) {
+      el.className = (el.getAttribute('data-tab') === tab) ? 'nav-tab active' : 'nav-tab';
     });
     document.getElementById('topbar-title').textContent = TAB_TITLES[tab] || '';
     document.getElementById('fab').style.display =
