@@ -177,6 +177,16 @@ function loadDropdowns() {
 }
 function clearDropdowns() { _cats = []; _units = []; _places = []; _stores = []; }
 
+// ── Form value helpers (FormData.get() not available in iOS 9) ────────────────
+function fVal(form, name) {
+    var el = form.elements[name];
+    return el ? el.value : '';
+}
+function fChk(form, name) {
+    var el = form.elements[name];
+    return el ? el.checked : false;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -233,14 +243,14 @@ function dictionaryForm(r) {
     '</div></form>';
 }
 
-function buildDictBody(fd) {
+function buildDictBody(form) {
     return {
-        name: fd.get('name'),
-        description: fd.get('description') || null,
-        icon: fd.get('icon') || null,
-        color: fd.get('color') || null,
-        sortOrder: parseInt(fd.get('sortOrder')) || 0,
-        active: fd.get('active') === 'on'
+        name: fVal(form, 'name'),
+        description: fVal(form, 'description') || null,
+        icon: fVal(form, 'icon') || null,
+        color: fVal(form, 'color') || null,
+        sortOrder: parseInt(fVal(form, 'sortOrder')) || 0,
+        active: fChk(form, 'active')
     };
 }
 
@@ -303,21 +313,21 @@ function productFormHtml(r) {
     '</div></form>';
 }
 
-function buildProductBody(fd) {
+function buildProductBody(form) {
     return {
-        name: fd.get('name'),
-        categoryId: parseInt(fd.get('categoryId')),
-        defaultUnitId: parseInt(fd.get('defaultUnitId')),
-        defaultStoragePlaceId: parseInt(fd.get('defaultStoragePlaceId')),
-        defaultStoreId: fd.get('defaultStoreId') ? parseInt(fd.get('defaultStoreId')) : null,
-        description: fd.get('description') || null,
-        shelfLifeDays: fd.get('shelfLifeDays') ? parseInt(fd.get('shelfLifeDays')) : null,
-        minimumQuantityThreshold: fd.get('minimumQuantityThreshold') ? parseFloat(fd.get('minimumQuantityThreshold')) : null,
-        reorderQuantity: fd.get('reorderQuantity') ? parseFloat(fd.get('reorderQuantity')) : null,
-        autoAddShopping: fd.get('autoAddShopping') === 'on',
-        barcode: fd.get('barcode') || null,
-        note: fd.get('note') || null,
-        active: fd.get('active') === 'on'
+        name: fVal(form,'name'),
+        categoryId: parseInt(fVal(form,'categoryId')),
+        defaultUnitId: parseInt(fVal(form,'defaultUnitId')),
+        defaultStoragePlaceId: parseInt(fVal(form,'defaultStoragePlaceId')),
+        defaultStoreId: fVal(form,'defaultStoreId') ? parseInt(fVal(form,'defaultStoreId')) : null,
+        description: fVal(form,'description') || null,
+        shelfLifeDays: fVal(form,'shelfLifeDays') ? parseInt(fVal(form,'shelfLifeDays')) : null,
+        minimumQuantityThreshold: fVal(form,'minimumQuantityThreshold') ? parseFloat(fVal(form,'minimumQuantityThreshold')) : null,
+        reorderQuantity: fVal(form,'reorderQuantity') ? parseFloat(fVal(form,'reorderQuantity')) : null,
+        autoAddShopping: fChk(form,'autoAddShopping'),
+        barcode: fVal(form,'barcode') || null,
+        note: fVal(form,'note') || null,
+        active: fChk(form,'active')
     };
 }
 
@@ -350,8 +360,8 @@ var sections = {
                 '<td>' + boolBadge(r.active) + '</td>';
         },
         getFormHtml: function(r) { return Promise.resolve(unitForm(r)); },
-        buildBody: function(fd) {
-            return { code: fd.get('code'), name: fd.get('name'), shortName: fd.get('shortName'), unitType: fd.get('unitType'), active: fd.get('active') === 'on' };
+        buildBody: function(form) {
+            return { code: fVal(form,'code'), name: fVal(form,'name'), shortName: fVal(form,'shortName'), unitType: fVal(form,'unitType'), active: fChk(form,'active') };
         }
     },
     products: {
@@ -477,7 +487,7 @@ function saveItem() {
     var formEl = document.getElementById('edit-form');
     if (!formEl) return;
     var cfg = sections[currentSection];
-    var body = cfg.buildBody(new FormData(formEl));
+    var body = cfg.buildBody(formEl);
     var saveBtn = document.getElementById('save-btn');
     var eid = editingId;
     var sec = currentSection;
