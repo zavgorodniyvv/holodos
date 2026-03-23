@@ -7,1612 +7,751 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Holodos">
   <title>Holodos</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- БЕЗ ВНЕШНИХ ЗАВИСИМОСТЕЙ — работает без интернета, любой iOS -->
   <style>
-    /* ── Reset ────────────────────────────────────────────────── */
-    *, *:before, *:after {
-      -webkit-tap-highlight-color: transparent;
-      -webkit-touch-callout: none;
-      box-sizing: border-box;
-      touch-action: manipulation;
-    }
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      background: #f0f4f8;
-      font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
-      margin: 0; padding: 0;
-    }
-
-    /* ── Layout ───────────────────────────────────────────────── */
-    #app {
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-orient: vertical;
-      -webkit-flex-direction: column;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    /* ── Top bar ──────────────────────────────────────────────── */
-    .topbar {
-      background: #1e3a5f;
-      color: #fff;
-      padding: 0 16px;
-      height: 56px;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: justify;
-      -webkit-justify-content: space-between;
-      justify-content: space-between;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-    }
-    .topbar-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-    }
-    .topbar-actions {
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-    }
-    .topbar-btn {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      color: #fff;
-      border-radius: 8px;
-      width: 44px;
-      height: 44px;
-      font-size: 1.2rem;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: center;
-      -webkit-justify-content: center;
-      justify-content: center;
-      position: relative;
-      margin-left: 8px;
-    }
-    .badge-dot {
-      position: absolute;
-      top: 6px; right: 6px;
-      width: 9px; height: 9px;
-      background: #ef4444;
-      border-radius: 50%;
-      border: 2px solid #1e3a5f;
-    }
-
-    /* ── Tab content area ─────────────────────────────────────── */
-    .tab-content-area {
-      -webkit-box-flex: 1;
-      -webkit-flex: 1;
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-    }
-    .tab-pane {
-      display: none;
-      position: absolute;
-      top: 0; right: 0; bottom: 0; left: 0;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 12px 12px 80px;
-    }
-    .tab-pane.active { display: block; }
-
-    /* ── Bottom nav ───────────────────────────────────────────── */
-    .bottom-nav {
-      position: relative;
-      background: #fff;
-      border-top: 1px solid #e2e8f0;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-      height: 64px;
-      z-index: 100;
-    }
-    .nav-tab {
-      -webkit-box-flex: 1;
-      -webkit-flex: 1;
-      flex: 1;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-orient: vertical;
-      -webkit-flex-direction: column;
-      flex-direction: column;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: center;
-      -webkit-justify-content: center;
-      justify-content: center;
-      color: #94a3b8;
-      font-size: 0.68rem;
-      font-weight: 500;
-      border: none;
-      background: none;
-      padding: 6px 0;
-      -webkit-transition: color 0.15s;
-      transition: color 0.15s;
-      cursor: pointer;
-    }
-    .nav-tab i { font-size: 1.5rem; line-height: 1; display: block; margin-bottom: 2px; }
-    .nav-tab.active { color: #1e3a5f; }
-
-    /* ── FAB ──────────────────────────────────────────────────── */
-    .fab {
-      position: fixed;
-      bottom: 80px; right: 16px;
-      width: 60px; height: 60px;
-      border-radius: 50%;
-      background: #1e3a5f;
-      color: #fff;
-      font-size: 1.8rem;
-      border: none;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: center;
-      -webkit-justify-content: center;
-      justify-content: center;
-      z-index: 200;
-      -webkit-transition: -webkit-transform 0.15s;
-      transition: transform 0.15s;
-      cursor: pointer;
-    }
-    .fab:active { -webkit-transform: scale(0.92); transform: scale(0.92); }
-
-    /* ── Cards ────────────────────────────────────────────────── */
-    .section-label {
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #64748b;
-      margin: 12px 4px 6px;
-    }
-    .item-card {
-      background: #fff;
-      border-radius: 12px;
-      margin-bottom: 8px;
-      padding: 14px 16px;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      -webkit-transition: background 0.1s;
-      transition: background 0.1s;
-      cursor: pointer;
-      border-left: 4px solid transparent;
-    }
-    .item-card:active { background: #f0f7ff; }
-    .item-card.status-warn    { border-left-color: #f59e0b; }
-    .item-card.status-expired { border-left-color: #ef4444; }
-    .item-card.status-ok      { border-left-color: #10b981; }
-    .item-card-icon {
-      font-size: 1.8rem;
-      width: 44px;
-      text-align: center;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-    }
-    .item-card-body {
-      -webkit-box-flex: 1;
-      -webkit-flex: 1;
-      flex: 1;
-      min-width: 0;
-      padding: 0 10px;
-    }
-    .item-card-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1e293b;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .item-card-sub {
-      font-size: 0.82rem;
-      color: #64748b;
-      margin-top: 2px;
-    }
-    .item-card-qty {
-      font-size: 1rem;
-      font-weight: 700;
-      color: #1e3a5f;
-      white-space: nowrap;
-      text-align: right;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-    }
-    .item-card-qty-unit {
-      font-size: 0.75rem;
-      color: #64748b;
-      font-weight: 400;
-    }
-    .check-circle {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      border: 2px solid #cbd5e1;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: center;
-      -webkit-justify-content: center;
-      justify-content: center;
-      color: transparent;
-      font-size: 0.9rem;
-    }
-
-    /* ── Empty state ──────────────────────────────────────────── */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #94a3b8;
-    }
-    .empty-state i { font-size: 3.5rem; display: block; margin-bottom: 12px; }
-    .empty-state p { font-size: 1rem; margin: 0; }
-
-    /* ── Loading overlay ──────────────────────────────────────── */
-    #loading-overlay {
-      position: fixed;
-      top: 0; right: 0; bottom: 0; left: 0;
-      background: #1e3a5f;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: center;
-      -webkit-justify-content: center;
-      justify-content: center;
-      -webkit-box-orient: vertical;
-      -webkit-flex-direction: column;
-      flex-direction: column;
-      z-index: 9999;
-      color: #fff;
-    }
-    .loading-logo {
-      font-size: 3rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 24px;
-    }
-    .loading-logo span { color: #38bdf8; }
-    .spinner-ring {
-      width: 36px; height: 36px;
-      border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: #fff;
-      border-radius: 50%;
-      -webkit-animation: spin 0.8s linear infinite;
-      animation: spin 0.8s linear infinite;
-    }
-    @-webkit-keyframes spin { to { -webkit-transform: rotate(360deg); } }
-    @keyframes spin         { to { transform: rotate(360deg); } }
-
-    /* ── Bottom sheet ─────────────────────────────────────────── */
-    .sheet-backdrop {
-      display: none;
-      position: fixed;
-      top: 0; right: 0; bottom: 0; left: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 500;
-    }
-    .sheet-backdrop.open { display: block; }
-    .bottom-sheet {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: #fff;
-      border-radius: 20px 20px 0 0;
-      z-index: 501;
-      padding-bottom: 16px;
-      -webkit-transform: translateY(100%);
-      transform: translateY(100%);
-      -webkit-transition: -webkit-transform 0.28s ease-out;
-      transition: transform 0.28s ease-out;
-      max-height: 85%;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .bottom-sheet.open {
-      -webkit-transform: translateY(0);
-      transform: translateY(0);
-    }
-    .sheet-handle {
-      width: 40px; height: 4px;
-      background: #e2e8f0;
-      border-radius: 2px;
-      margin: 10px auto 0;
-    }
-    .sheet-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #1e293b;
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid #f1f5f9;
-    }
-    .sheet-subtitle {
-      font-size: 0.85rem;
-      color: #64748b;
-      font-weight: 400;
-    }
-    .sheet-action {
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      padding: 16px;
-      font-size: 1.05rem;
-      color: #1e293b;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
-      border-bottom: 1px solid #f8fafc;
-      cursor: pointer;
-    }
-    .sheet-action:active { background: #f0f7ff; }
-    .sheet-action i { font-size: 1.3rem; width: 28px; color: #1e3a5f; margin-right: 14px; }
-    .sheet-action.danger { color: #ef4444; }
-    .sheet-action.danger i { color: #ef4444; }
-    .sheet-cancel {
-      display: block;
-      width: calc(100% - 32px);
-      margin: 8px 16px 0;
-      padding: 14px;
-      border-radius: 12px;
-      background: #f1f5f9;
-      border: none;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #64748b;
-      cursor: pointer;
-    }
-
-    /* ── Full-screen Modal ────────────────────────────────────── */
-    .full-modal {
-      display: none;
-      position: fixed;
-      top: 0; right: 0; bottom: 0; left: 0;
-      background: #f0f4f8;
-      z-index: 600;
-      -webkit-box-orient: vertical;
-      -webkit-flex-direction: column;
-      flex-direction: column;
-    }
-    .full-modal.open {
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-    }
-    .modal-topbar {
-      background: #1e3a5f;
-      color: #fff;
-      padding: 0 16px;
-      height: 56px;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-    }
-    .modal-back {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      color: #fff;
-      border-radius: 8px;
-      width: 44px; height: 44px;
-      font-size: 1.3rem;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: center;
-      -webkit-justify-content: center;
-      justify-content: center;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-      cursor: pointer;
-    }
-    .modal-topbar-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      -webkit-box-flex: 1;
-      -webkit-flex: 1;
-      flex: 1;
-      margin-left: 12px;
-    }
-    .modal-body-scroll {
-      -webkit-box-flex: 1;
-      -webkit-flex: 1;
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 16px;
-    }
-    .modal-footer-fixed {
-      padding: 12px 16px;
-      background: #fff;
-      border-top: 1px solid #e2e8f0;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-    }
-
-    /* ── Forms ────────────────────────────────────────────────── */
-    .form-group { margin-bottom: 18px; }
-    .form-label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      display: block;
-      margin-bottom: 6px;
-    }
-    .tform-control {
-      height: 52px;
-      font-size: 1rem;
-      border-radius: 10px;
-      border: 1.5px solid #e2e8f0;
-      padding: 0 14px;
-      background: #fff;
-      color: #1e293b;
-      width: 100%;
-      -webkit-appearance: none;
-      display: block;
-      outline: none;
-    }
-    .tform-control:focus {
-      border-color: #1e3a5f;
-      -webkit-box-shadow: 0 0 0 3px rgba(30,58,95,0.12);
-      box-shadow: 0 0 0 3px rgba(30,58,95,0.12);
-    }
-    select.tform-control {
-      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%2364748b' viewBox='0 0 16 16'%3e%3cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 14px;
-      padding-right: 36px;
-    }
-    textarea.tform-control {
-      height: auto;
-      padding: 12px 14px;
-      resize: none;
-    }
-
-    /* ── Qty stepper ──────────────────────────────────────────── */
-    .qty-stepper {
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      background: #fff;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .qty-btn {
-      width: 60px; height: 52px;
-      background: #f8fafc;
-      border: none;
-      font-size: 1.6rem;
-      color: #1e3a5f;
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      -webkit-box-pack: center;
-      -webkit-justify-content: center;
-      justify-content: center;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-      cursor: pointer;
-    }
-    .qty-btn:active { background: #e2e8f0; }
-    .qty-input {
-      -webkit-box-flex: 1;
-      -webkit-flex: 1;
-      flex: 1;
-      height: 52px;
-      border: none;
-      text-align: center;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #1e293b;
-      background: #fff;
-      width: 0;
-      outline: none;
-    }
-
-    /* ── Buttons ──────────────────────────────────────────────── */
-    .btn-primary-lg {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      background: #1e3a5f;
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      font-size: 1.05rem;
-      font-weight: 700;
-      text-align: center;
-      cursor: pointer;
-      -webkit-transition: opacity 0.1s;
-      transition: opacity 0.1s;
-    }
-    .btn-primary-lg:active { opacity: 0.85; }
-    .btn-primary-lg:disabled { opacity: 0.5; }
-
-    /* ── Toast ────────────────────────────────────────────────── */
-    #toast {
-      position: fixed;
-      top: 66px; left: 16px; right: 16px;
-      background: #1e293b;
-      color: #fff;
-      padding: 14px 18px;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      z-index: 9998;
-      display: none;
-      -webkit-box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-    }
-    #toast.success { background: #065f46; }
-    #toast.error   { background: #7f1d1d; }
-
-    /* ── Notifications ────────────────────────────────────────── */
-    .notif-card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 8px;
-      -webkit-box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      cursor: pointer;
-    }
-    .notif-card.unread { border-left: 4px solid #1e3a5f; }
-    .notif-title { font-weight: 700; font-size: 0.95rem; color: #1e293b; }
-    .notif-msg   { font-size: 0.85rem; color: #64748b; margin-top: 3px; }
-    .notif-time  { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
-
-    /* ── Settings ─────────────────────────────────────────────── */
-    .settings-section {
-      background: #fff;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      overflow: hidden;
-      -webkit-box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-    }
-    .settings-row {
-      display: -webkit-box;
-      display: -webkit-flex;
-      display: flex;
-      -webkit-box-align: center;
-      -webkit-align-items: center;
-      align-items: center;
-      padding: 14px 16px;
-      border-bottom: 1px solid #f8fafc;
-      cursor: pointer;
-    }
-    .settings-row:last-child { border-bottom: none; }
-    .settings-row-label {
-      -webkit-box-flex: 1;
-      -webkit-flex: 1;
-      flex: 1;
-      font-size: 0.95rem;
-      color: #1e293b;
-      margin-right: 12px;
-    }
-    .settings-row-label small {
-      display: block;
-      font-size: 0.78rem;
-      color: #94a3b8;
-      margin-top: 1px;
-    }
-    .ios-toggle {
-      position: relative;
-      width: 52px; height: 30px;
-      -webkit-flex-shrink: 0;
-      flex-shrink: 0;
-    }
-    .ios-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-    .toggle-track {
-      position: absolute;
-      top: 0; right: 0; bottom: 0; left: 0;
-      background: #cbd5e1;
-      border-radius: 15px;
-      -webkit-transition: background 0.2s;
-      transition: background 0.2s;
-      cursor: pointer;
-    }
-    .toggle-track:before {
-      content: '';
-      position: absolute;
-      width: 24px; height: 24px;
-      border-radius: 50%;
-      background: #fff;
-      top: 3px; left: 3px;
-      -webkit-box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-      -webkit-transition: -webkit-transform 0.2s;
-      transition: transform 0.2s;
-    }
-    .ios-toggle input:checked + .toggle-track { background: #10b981; }
-    .ios-toggle input:checked + .toggle-track:before {
-      -webkit-transform: translateX(22px);
-      transform: translateX(22px);
-    }
-    .settings-input {
-      width: 90px; height: 40px;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1e293b;
-      -webkit-appearance: none;
-      outline: none;
-    }
-    .section-label-settings {
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #64748b;
-      margin: 12px 4px 6px;
-    }
+    *,*:before,*:after{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;box-sizing:border-box;}
+    html,body{height:100%;overflow:hidden;margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:16px;}
+    #app{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;height:100%;}
+    /* topbar */
+    .topbar{background:#1e3a5f;color:#fff;padding:0 12px;height:52px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;-webkit-flex-shrink:0;flex-shrink:0;}
+    .topbar-title{font-size:1.05rem;font-weight:700;}
+    .topbar-btns{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;}
+    .topbar-btn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:44px;height:44px;font-size:1.1rem;margin-left:8px;position:relative;cursor:pointer;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;}
+    .badge-dot{position:absolute;top:6px;right:6px;width:9px;height:9px;background:#ef4444;border-radius:50%;border:2px solid #1e3a5f;}
+    /* tabs */
+    .tab-area{-webkit-box-flex:1;-webkit-flex:1;flex:1;overflow:hidden;position:relative;}
+    .tab-pane{display:none;position:absolute;top:0;right:0;bottom:0;left:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 10px 76px;}
+    .tab-pane.active{display:block;}
+    /* bottom nav */
+    .bottom-nav{background:#fff;border-top:1px solid #e2e8f0;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-shrink:0;flex-shrink:0;height:60px;}
+    .nav-btn{-webkit-box-flex:1;-webkit-flex:1;flex:1;border:none;background:none;color:#94a3b8;font-size:0.65rem;font-weight:600;cursor:pointer;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;padding:6px 0;}
+    .nav-btn .ico{font-size:1.5rem;line-height:1;display:block;margin-bottom:1px;}
+    .nav-btn.active{color:#1e3a5f;}
+    /* fab */
+    .fab{position:fixed;bottom:72px;right:14px;width:58px;height:58px;border-radius:50%;background:#1e3a5f;color:#fff;font-size:2rem;border:none;-webkit-box-shadow:0 4px 14px rgba(0,0,0,.3);box-shadow:0 4px 14px rgba(0,0,0,.3);display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;z-index:200;cursor:pointer;-webkit-transition:-webkit-transform .15s;transition:transform .15s;}
+    .fab:active{-webkit-transform:scale(.92);transform:scale(.92);}
+    /* cards */
+    .sec-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:12px 2px 5px;}
+    .card{background:#fff;border-radius:12px;margin-bottom:8px;padding:13px 14px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;border-left:4px solid transparent;}
+    .card:active{background:#f0f7ff;}
+    .card.ok{border-left-color:#10b981;}
+    .card.warn{border-left-color:#f59e0b;}
+    .card.bad{border-left-color:#ef4444;}
+    .card-ico{font-size:1.6rem;width:40px;text-align:center;-webkit-flex-shrink:0;flex-shrink:0;}
+    .card-body{-webkit-box-flex:1;-webkit-flex:1;flex:1;min-width:0;padding:0 10px;}
+    .card-title{font-size:.97rem;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .card-sub{font-size:.8rem;color:#64748b;margin-top:2px;}
+    .card-qty{font-size:.97rem;font-weight:700;color:#1e3a5f;text-align:right;-webkit-flex-shrink:0;flex-shrink:0;white-space:nowrap;}
+    .card-unit{font-size:.72rem;color:#64748b;font-weight:400;}
+    .circle{width:28px;height:28px;border-radius:50%;border:2px solid #cbd5e1;-webkit-flex-shrink:0;flex-shrink:0;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;font-size:.9rem;color:transparent;}
+    /* empty */
+    .empty{text-align:center;padding:60px 20px;color:#94a3b8;}
+    .empty .ico{font-size:3rem;display:block;margin-bottom:10px;}
+    /* loading */
+    #loading{position:fixed;top:0;right:0;bottom:0;left:0;background:#1e3a5f;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;z-index:9999;color:#fff;text-align:center;padding:20px;}
+    .logo{font-size:2.8rem;font-weight:800;margin-bottom:24px;}
+    .logo span{color:#38bdf8;}
+    .spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;-webkit-animation:spin .8s linear infinite;animation:spin .8s linear infinite;}
+    @-webkit-keyframes spin{to{-webkit-transform:rotate(360deg);}}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    /* sheet */
+    .backdrop{display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.45);z-index:500;}
+    .backdrop.open{display:block;}
+    .sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;z-index:501;padding-bottom:14px;-webkit-transform:translateY(100%);transform:translateY(100%);-webkit-transition:-webkit-transform .26s ease-out;transition:transform .26s ease-out;max-height:85%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .sheet.open{-webkit-transform:translateY(0);transform:translateY(0);}
+    .sheet-handle{width:38px;height:4px;background:#e2e8f0;border-radius:2px;margin:10px auto 0;}
+    .sheet-title{font-size:1rem;font-weight:700;color:#1e293b;padding:12px 16px 8px;border-bottom:1px solid #f1f5f9;}
+    .sheet-sub{font-size:.83rem;color:#64748b;font-weight:400;}
+    .sheet-btn{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:15px 16px;font-size:1rem;color:#1e293b;border:none;background:none;width:100%;text-align:left;border-bottom:1px solid #f8fafc;cursor:pointer;}
+    .sheet-btn:active{background:#f0f7ff;}
+    .sheet-btn .ico{font-size:1.3rem;width:28px;margin-right:12px;}
+    .sheet-btn.red{color:#ef4444;}
+    .sheet-cancel{display:block;width:calc(100% - 28px);margin:8px 14px 0;padding:13px;border-radius:12px;background:#f1f5f9;border:none;font-size:1rem;font-weight:600;color:#64748b;cursor:pointer;}
+    /* modal */
+    .modal{display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:#f0f4f8;z-index:600;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;}
+    .modal.open{display:-webkit-box;display:-webkit-flex;display:flex;}
+    .modal-top{background:#1e3a5f;color:#fff;padding:0 14px;height:52px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-flex-shrink:0;flex-shrink:0;}
+    .modal-back{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:44px;height:44px;font-size:1.4rem;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-flex-shrink:0;flex-shrink:0;cursor:pointer;}
+    .modal-ttl{font-size:1rem;font-weight:700;-webkit-box-flex:1;-webkit-flex:1;flex:1;margin-left:12px;}
+    .modal-scroll{-webkit-box-flex:1;-webkit-flex:1;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;}
+    .modal-foot{padding:12px 14px;background:#fff;border-top:1px solid #e2e8f0;-webkit-flex-shrink:0;flex-shrink:0;}
+    /* forms */
+    .fg{margin-bottom:16px;}
+    .flbl{font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px;}
+    .fin{height:50px;font-size:1rem;border-radius:10px;border:1.5px solid #e2e8f0;padding:0 13px;background:#fff;color:#1e293b;width:100%;-webkit-appearance:none;display:block;outline:none;}
+    .fin:focus{border-color:#1e3a5f;}
+    select.fin{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%2364748b' viewBox='0 0 16 16'%3e%3cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 12px center;background-size:13px;padding-right:34px;}
+    textarea.fin{height:auto;padding:11px 13px;resize:none;}
+    .stepper{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden;}
+    .step-btn{width:58px;height:50px;background:#f8fafc;border:none;font-size:1.6rem;color:#1e3a5f;-webkit-flex-shrink:0;flex-shrink:0;cursor:pointer;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;}
+    .step-btn:active{background:#e2e8f0;}
+    .step-in{-webkit-box-flex:1;-webkit-flex:1;flex:1;height:50px;border:none;text-align:center;font-size:1.25rem;font-weight:700;color:#1e293b;background:#fff;width:0;outline:none;}
+    /* buttons */
+    .btn-main{display:block;width:100%;padding:15px;background:#1e3a5f;color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;text-align:center;cursor:pointer;}
+    .btn-main:active{opacity:.85;}
+    /* toast */
+    #toast{position:fixed;top:62px;left:12px;right:12px;padding:13px 16px;border-radius:12px;font-size:.93rem;font-weight:500;color:#fff;background:#1e293b;z-index:9998;display:none;-webkit-box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px rgba(0,0,0,.25);}
+    #toast.ok{background:#065f46;}
+    #toast.err{background:#7f1d1d;}
+    /* notifications */
+    .notif{background:#fff;border-radius:12px;padding:13px 15px;margin-bottom:8px;cursor:pointer;}
+    .notif.unread{border-left:4px solid #1e3a5f;}
+    .notif-t{font-weight:700;font-size:.93rem;color:#1e293b;}
+    .notif-m{font-size:.82rem;color:#64748b;margin-top:2px;}
+    .notif-d{font-size:.73rem;color:#94a3b8;margin-top:3px;}
+    /* settings */
+    .s-section{background:#fff;border-radius:12px;margin-bottom:14px;overflow:hidden;}
+    .s-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:13px 15px;border-bottom:1px solid #f8fafc;cursor:pointer;}
+    .s-row:last-child{border-bottom:none;}
+    .s-lbl{-webkit-box-flex:1;-webkit-flex:1;flex:1;font-size:.93rem;color:#1e293b;margin-right:12px;}
+    .s-lbl small{display:block;font-size:.75rem;color:#94a3b8;margin-top:1px;}
+    .toggle{position:relative;width:50px;height:28px;-webkit-flex-shrink:0;flex-shrink:0;}
+    .toggle input{position:absolute;opacity:0;width:0;height:0;}
+    .track{position:absolute;top:0;right:0;bottom:0;left:0;background:#cbd5e1;border-radius:14px;cursor:pointer;-webkit-transition:background .2s;transition:background .2s;}
+    .track:before{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;top:3px;left:3px;-webkit-box-shadow:0 1px 3px rgba(0,0,0,.2);box-shadow:0 1px 3px rgba(0,0,0,.2);-webkit-transition:-webkit-transform .2s;transition:transform .2s;}
+    .toggle input:checked + .track{background:#10b981;}
+    .toggle input:checked + .track:before{-webkit-transform:translateX(22px);transform:translateX(22px);}
+    .s-input{width:85px;height:38px;border:1.5px solid #e2e8f0;border-radius:8px;text-align:center;font-size:.97rem;font-weight:600;color:#1e293b;-webkit-appearance:none;outline:none;}
+    .s-lbl2{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:12px 2px 5px;}
+    /* js check */
+    #jscheck{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;padding:12px;text-align:center;font-size:.9rem;z-index:99999;}
   </style>
 </head>
 <body>
 
-<!-- Loading -->
-<div id="loading-overlay">
-  <div class="loading-logo">🧊 <span>Holodos</span></div>
-  <div class="spinner-ring"></div>
+<!-- Если JS не работает — этот блок останется видимым -->
+<div id="jscheck">⚠ JavaScript не загрузился. Обновите страницу.</div>
+
+<div id="loading">
+  <div class="logo">🧊 <span>Holodos</span></div>
+  <div class="spinner"></div>
 </div>
 
 <div id="app">
   <div class="topbar">
-    <div class="topbar-title" id="topbar-title">Инвентарь</div>
-    <div class="topbar-actions">
-      <button class="topbar-btn" onclick="App.reload()"><i class="bi bi-arrow-clockwise"></i></button>
-      <button class="topbar-btn" onclick="App.showTab('notifications')">
-        <i class="bi bi-bell"></i>
-        <span class="badge-dot" id="notif-dot" style="display:none"></span>
+    <div class="topbar-title" id="ttl">Инвентарь</div>
+    <div class="topbar-btns">
+      <button class="topbar-btn" id="btn-reload" onclick="App.reload()">↻</button>
+      <button class="topbar-btn" id="btn-bell" onclick="App.showTab('notifications')">
+        🔔<span class="badge-dot" id="ndot" style="display:none"></span>
       </button>
     </div>
   </div>
 
-  <div class="tab-content-area">
-    <div class="tab-pane active" id="tab-inventory">
-      <div id="inventory-list"></div>
-    </div>
-    <div class="tab-pane" id="tab-shopping">
-      <div id="shopping-list"></div>
-    </div>
-    <div class="tab-pane" id="tab-notifications">
-      <div id="notifications-list"></div>
-    </div>
-    <div class="tab-pane" id="tab-settings">
-      <div id="settings-content"></div>
-    </div>
+  <div class="tab-area">
+    <div class="tab-pane active" id="tab-inventory"><div id="inv-list"></div></div>
+    <div class="tab-pane" id="tab-shopping"><div id="sh-list"></div></div>
+    <div class="tab-pane" id="tab-notifications"><div id="notif-list"></div></div>
+    <div class="tab-pane" id="tab-settings"><div id="set-body"></div></div>
   </div>
 
   <nav class="bottom-nav">
-    <button class="nav-tab active" data-tab="inventory" onclick="App.showTab('inventory')">
-      <i class="bi bi-box-seam-fill"></i><span>Инвентарь</span>
+    <button class="nav-btn active" data-tab="inventory" onclick="App.showTab('inventory')">
+      <span class="ico">📦</span>Инвентарь
     </button>
-    <button class="nav-tab" data-tab="shopping" onclick="App.showTab('shopping')">
-      <i class="bi bi-cart3"></i><span>Покупки</span>
+    <button class="nav-btn" data-tab="shopping" onclick="App.showTab('shopping')">
+      <span class="ico">🛒</span>Покупки
     </button>
-    <button class="nav-tab" data-tab="notifications" onclick="App.showTab('notifications')">
-      <i class="bi bi-bell"></i><span>Уведомления</span>
+    <button class="nav-btn" data-tab="notifications" onclick="App.showTab('notifications')">
+      <span class="ico">🔔</span>Уведомления
     </button>
-    <button class="nav-tab" data-tab="settings" onclick="App.showTab('settings')">
-      <i class="bi bi-gear-fill"></i><span>Настройки</span>
+    <button class="nav-btn" data-tab="settings" onclick="App.showTab('settings')">
+      <span class="ico">⚙</span>Настройки
     </button>
   </nav>
 </div>
 
-<button class="fab" id="fab" onclick="App.fabAction()">
-  <i class="bi bi-plus"></i>
-</button>
+<button class="fab" id="fab" onclick="App.fabAction()">+</button>
 
-<!-- Bottom sheet -->
-<div class="sheet-backdrop" id="sheet-backdrop" onclick="App.closeSheet()"></div>
-<div class="bottom-sheet" id="action-sheet">
+<!-- Sheet -->
+<div class="backdrop" id="backdrop" onclick="App.closeSheet()"></div>
+<div class="sheet" id="sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-title" id="sheet-title"></div>
-  <div id="sheet-actions"></div>
+  <div class="sheet-title" id="sheet-ttl"></div>
+  <div id="sheet-body"></div>
   <button class="sheet-cancel" onclick="App.closeSheet()">Отмена</button>
 </div>
 
-<!-- Modal: Add Stock -->
-<div class="full-modal" id="modal-add-stock">
-  <div class="modal-topbar">
-    <button class="modal-back" onclick="App.closeModal('modal-add-stock')"><i class="bi bi-chevron-left"></i></button>
-    <div class="modal-topbar-title">Добавить в запасы</div>
+<!-- Modal: добавить запас -->
+<div class="modal" id="m-stock">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-stock')">←</button>
+    <div class="modal-ttl">Добавить в запасы</div>
   </div>
-  <div class="modal-body-scroll">
-    <div class="form-group">
-      <label class="form-label">Продукт *</label>
-      <select class="tform-control" id="as-product" onchange="App.onProductChange()">
-        <option value="">— выберите продукт —</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Количество *</label>
-      <div class="qty-stepper">
-        <button class="qty-btn" onclick="App.stepQty('as-qty',-1)">−</button>
-        <input class="qty-input" type="number" id="as-qty" value="1" min="0.001" step="0.1">
-        <button class="qty-btn" onclick="App.stepQty('as-qty',1)">+</button>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Единица *</label>
-      <select class="tform-control" id="as-unit"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Место хранения *</label>
-      <select class="tform-control" id="as-place"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Срок годности</label>
-      <input class="tform-control" type="date" id="as-expires">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Комментарий</label>
-      <textarea class="tform-control" id="as-comment" rows="2" placeholder="Необязательно"></textarea>
-    </div>
+  <div class="modal-scroll">
+    <div class="fg"><label class="flbl">Продукт *</label>
+      <select class="fin" id="as-prod" onchange="App.onProdChange()"><option value="">— выберите —</option></select></div>
+    <div class="fg"><label class="flbl">Количество *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('as-qty',-1)">−</button>
+        <input class="step-in" type="number" id="as-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('as-qty',1)">+</button></div></div>
+    <div class="fg"><label class="flbl">Единица *</label>
+      <select class="fin" id="as-unit"></select></div>
+    <div class="fg"><label class="flbl">Место хранения *</label>
+      <select class="fin" id="as-place"></select></div>
+    <div class="fg"><label class="flbl">Срок годности</label>
+      <input class="fin" type="date" id="as-exp"></div>
+    <div class="fg"><label class="flbl">Комментарий</label>
+      <textarea class="fin" id="as-note" rows="2"></textarea></div>
   </div>
-  <div class="modal-footer-fixed">
-    <button class="btn-primary-lg" onclick="App.submitAddStock()">Добавить</button>
-  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.addStock()">Добавить</button></div>
 </div>
 
-<!-- Modal: Consume -->
-<div class="full-modal" id="modal-consume">
-  <div class="modal-topbar">
-    <button class="modal-back" onclick="App.closeModal('modal-consume')"><i class="bi bi-chevron-left"></i></button>
-    <div class="modal-topbar-title">Использовать</div>
+<!-- Modal: использовать -->
+<div class="modal" id="m-consume">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-consume')">←</button>
+    <div class="modal-ttl">Использовать</div>
   </div>
-  <div class="modal-body-scroll">
-    <div style="text-align:center; padding: 20px 0 28px;">
-      <div style="font-size:1.4rem; font-weight:700; color:#1e293b;" id="consume-name">—</div>
-      <div style="font-size:0.9rem; color:#64748b; margin-top:6px;" id="consume-available">—</div>
+  <div class="modal-scroll">
+    <div style="text-align:center;padding:20px 0 24px;">
+      <div style="font-size:1.3rem;font-weight:700;color:#1e293b;" id="con-name"></div>
+      <div style="font-size:.87rem;color:#64748b;margin-top:5px;" id="con-avail"></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Потратил сколько? *</label>
-      <div class="qty-stepper">
-        <button class="qty-btn" onclick="App.stepQty('consume-qty',-0.1)">−</button>
-        <input class="qty-input" type="number" id="consume-qty" value="1" min="0.001" step="0.1">
-        <button class="qty-btn" onclick="App.stepQty('consume-qty',0.1)">+</button>
-      </div>
-    </div>
+    <div class="fg"><label class="flbl">Сколько потратил? *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('con-qty',-.1)">−</button>
+        <input class="step-in" type="number" id="con-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('con-qty',.1)">+</button></div></div>
   </div>
-  <div class="modal-footer-fixed">
-    <button class="btn-primary-lg" onclick="App.submitConsume()">Списать использованное</button>
-  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.doConsume()">Списать</button></div>
 </div>
 
-<!-- Modal: Add Shopping -->
-<div class="full-modal" id="modal-add-shopping">
-  <div class="modal-topbar">
-    <button class="modal-back" onclick="App.closeModal('modal-add-shopping')"><i class="bi bi-chevron-left"></i></button>
-    <div class="modal-topbar-title">Добавить в список</div>
+<!-- Modal: добавить в список -->
+<div class="modal" id="m-shop">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-shop')">←</button>
+    <div class="modal-ttl">Добавить в список</div>
   </div>
-  <div class="modal-body-scroll">
-    <div class="form-group">
-      <label class="form-label">Название *</label>
-      <input class="tform-control" type="text" id="sh-title" placeholder="Что купить">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Продукт (необязательно)</label>
-      <select class="tform-control" id="sh-product" onchange="App.onShProductChange()">
-        <option value="">— не выбран —</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Количество *</label>
-      <div class="qty-stepper">
-        <button class="qty-btn" onclick="App.stepQty('sh-qty',-1)">−</button>
-        <input class="qty-input" type="number" id="sh-qty" value="1" min="0.001" step="0.1">
-        <button class="qty-btn" onclick="App.stepQty('sh-qty',1)">+</button>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Единица</label>
-      <select class="tform-control" id="sh-unit"><option value="">— не указана —</option></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Магазин</label>
-      <select class="tform-control" id="sh-store"><option value="">— любой —</option></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Комментарий</label>
-      <textarea class="tform-control" id="sh-comment" rows="2" placeholder="Необязательно"></textarea>
-    </div>
+  <div class="modal-scroll">
+    <div class="fg"><label class="flbl">Название *</label>
+      <input class="fin" type="text" id="sh-title" placeholder="Что купить"></div>
+    <div class="fg"><label class="flbl">Продукт (необязательно)</label>
+      <select class="fin" id="sh-prod" onchange="App.onShProdChange()"><option value="">— не выбран —</option></select></div>
+    <div class="fg"><label class="flbl">Количество *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('sh-qty',-1)">−</button>
+        <input class="step-in" type="number" id="sh-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('sh-qty',1)">+</button></div></div>
+    <div class="fg"><label class="flbl">Единица</label>
+      <select class="fin" id="sh-unit"><option value="">— не указана —</option></select></div>
+    <div class="fg"><label class="flbl">Магазин</label>
+      <select class="fin" id="sh-store"><option value="">— любой —</option></select></div>
+    <div class="fg"><label class="flbl">Комментарий</label>
+      <textarea class="fin" id="sh-note" rows="2"></textarea></div>
   </div>
-  <div class="modal-footer-fixed">
-    <button class="btn-primary-lg" onclick="App.submitAddShopping()">Добавить в список</button>
-  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.addShopping()">Добавить в список</button></div>
 </div>
 
-<!-- Modal: Complete Purchase -->
-<div class="full-modal" id="modal-purchase">
-  <div class="modal-topbar">
-    <button class="modal-back" onclick="App.closeModal('modal-purchase')"><i class="bi bi-chevron-left"></i></button>
-    <div class="modal-topbar-title">Купил!</div>
+<!-- Modal: куплено -->
+<div class="modal" id="m-buy">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-buy')">←</button>
+    <div class="modal-ttl">Купил!</div>
   </div>
-  <div class="modal-body-scroll">
-    <div style="text-align:center; padding: 20px 0 28px;">
-      <div style="font-size:2.2rem;">🛒</div>
-      <div style="font-size:1.3rem; font-weight:700; color:#1e293b; margin-top:10px;" id="purchase-name">—</div>
+  <div class="modal-scroll">
+    <div style="text-align:center;padding:16px 0 24px;">
+      <div style="font-size:2rem;">🛒</div>
+      <div style="font-size:1.2rem;font-weight:700;color:#1e293b;margin-top:8px;" id="buy-name"></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Купил сколько? *</label>
-      <div class="qty-stepper">
-        <button class="qty-btn" onclick="App.stepQty('purchase-qty',-0.1)">−</button>
-        <input class="qty-input" type="number" id="purchase-qty" value="1" min="0.001" step="0.1">
-        <button class="qty-btn" onclick="App.stepQty('purchase-qty',0.1)">+</button>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Куда положить? *</label>
-      <select class="tform-control" id="purchase-place"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Срок годности</label>
-      <input class="tform-control" type="date" id="purchase-expires">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Комментарий</label>
-      <textarea class="tform-control" id="purchase-comment" rows="2" placeholder="Необязательно"></textarea>
-    </div>
+    <div class="fg"><label class="flbl">Купил сколько? *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('buy-qty',-.1)">−</button>
+        <input class="step-in" type="number" id="buy-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('buy-qty',.1)">+</button></div></div>
+    <div class="fg"><label class="flbl">Куда положить? *</label>
+      <select class="fin" id="buy-place"></select></div>
+    <div class="fg"><label class="flbl">Срок годности</label>
+      <input class="fin" type="date" id="buy-exp"></div>
+    <div class="fg"><label class="flbl">Комментарий</label>
+      <textarea class="fin" id="buy-note" rows="2"></textarea></div>
   </div>
-  <div class="modal-footer-fixed">
-    <button class="btn-primary-lg" onclick="App.submitPurchase()">Добавить в инвентарь</button>
-  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.doBuy()">Добавить в инвентарь</button></div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-/* Vanilla JS, ES5-compatible, Promise-based. iOS 9 Safari safe. */
-var App = (function() {
-  'use strict';
+/* ES5, без внешних зависимостей, XHR */
+document.getElementById('jscheck').style.display = 'none'; /* JS работает */
 
+var App = (function() {
   var API = '/api';
-  var state = {
-    products: [], units: [], places: [], stores: [],
-    productById: {}, unitById: {}, placeById: {}, storeById: {},
-    inventory: [], shopping: [], notifications: [], settings: null,
-    currentTab: 'inventory',
-    actionStockId: null,
-    actionShoppingId: null
+  var S = {
+    prods:[], units:[], places:[], stores:[],
+    pById:{}, uById:{}, plById:{}, stById:{},
+    inv:[], shop:[], notifs:[], settings:null,
+    tab:'inventory',
+    stockId:null, shopId:null
   };
 
-  /* ── querySelectorAll helper — простой for-loop, без slice ────── */
-  function each(sel, fn) {
-    var els = document.querySelectorAll(sel);
-    for (var i = 0; i < els.length; i++) fn(els[i]);
-  }
-
-  /* ── API (XHR — fetch не поддерживается в iOS 9) ─────────────── */
-  function api(path, method, body) {
+  /* XHR */
+  function xhr(path, method, body) {
     return new Promise(function(resolve, reject) {
-      var xhr = new XMLHttpRequest();
-      xhr.open(method || 'GET', API + '/' + path, true);
-      if (body !== undefined) {
-        xhr.setRequestHeader('Content-Type', 'application/json');
-      }
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState !== 4) return;
-        if (xhr.status === 204 || xhr.status === 205) { resolve(null); return; }
-        var data;
-        try { data = JSON.parse(xhr.responseText); } catch(e) { data = null; }
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(data);
-        } else {
-          reject(new Error((data && data.message) || ('Ошибка ' + xhr.status)));
-        }
+      var x = new XMLHttpRequest();
+      x.open(method || 'GET', API + '/' + path, true);
+      if (body !== undefined) x.setRequestHeader('Content-Type', 'application/json');
+      x.onreadystatechange = function() {
+        if (x.readyState !== 4) return;
+        if (x.status === 204 || x.status === 205) { resolve(null); return; }
+        var d;
+        try { d = JSON.parse(x.responseText); } catch(e) { d = null; }
+        if (x.status >= 200 && x.status < 300) { resolve(d); }
+        else { reject(new Error((d && d.message) || ('HTTP ' + x.status))); }
       };
-      xhr.onerror = function() { reject(new Error('Нет соединения с сервером')); };
-      xhr.send(body !== undefined ? JSON.stringify(body) : null);
+      x.onerror = function() { reject(new Error('Нет соединения')); };
+      x.send(body !== undefined ? JSON.stringify(body) : null);
     });
   }
-  function apiGet(p)     { return api(p, 'GET'); }
-  function apiPost(p, b) { return api(p, 'POST',   b); }
-  function apiPut(p, b)  { return api(p, 'PUT',    b); }
-  function apiDelete(p)  { return api(p, 'DELETE'); }
+  function GET(p)    { return xhr(p); }
+  function POST(p,b) { return xhr(p,'POST',b); }
+  function PUT(p,b)  { return xhr(p,'PUT',b); }
 
-  /* ── Init ─────────────────────────────────────────────────────── */
-  function showError(msg) {
-    document.getElementById('loading-overlay').innerHTML =
-      '<div style="color:#fca5a5;font-size:1rem;padding:30px;text-align:center">' +
-      'Не удалось подключиться к серверу.<br><br>' + String(msg) + '<br><br>' +
-      '<button onclick="window.location.reload()" style="background:#38bdf8;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:1rem">Повторить</button>' +
-      '</div>';
+  /* helpers */
+  function byId(arr,id) {
+    for (var i=0;i<arr.length;i++) if (arr[i].id===id) return arr[i];
+    return null;
   }
-
-  function init() {
-    try {
-      loadAll()
-        .then(function() {
-          document.getElementById('loading-overlay').style.display = 'none';
-        })
-        .catch(function(e) { showError(e.message); });
-    } catch(e) {
-      showError(e.message);
-    }
-  }
-
-  function loadAll() {
-    return loadRefData().then(function() {
-      return Promise.all([loadInventory(), loadShopping(), loadNotifications(), loadSettings()]);
-    }).then(function() {
-      renderInventory();
-      renderShopping();
-      renderNotifications();
-      renderSettings();
-      populateSelects();
-    });
-  }
-
-  function loadRefData() {
-    return Promise.all([
-      apiGet('products?page=0&size=500'),
-      apiGet('units'),
-      apiGet('storage-places'),
-      apiGet('stores')
-    ]).then(function(r) {
-      state.products = r[0].content || [];
-      state.units    = r[1];
-      state.places   = r[2];
-      state.stores   = r[3];
-      state.productById = indexBy(state.products, 'id');
-      state.unitById    = indexBy(state.units,    'id');
-      state.placeById   = indexBy(state.places,   'id');
-      state.storeById   = indexBy(state.stores,   'id');
-    });
-  }
-
-  function loadInventory() {
-    return apiGet('stock-entries?status=AVAILABLE&size=500').then(function(d) {
-      state.inventory = d.content || [];
-    });
-  }
-  function loadShopping() {
-    return apiGet('shopping-list?status=ACTIVE&size=500').then(function(d) {
-      state.shopping = d.content || [];
-    });
-  }
-  function loadNotifications() {
-    return apiGet('notifications').then(function(d) {
-      state.notifications = d || [];
-      var unread = 0;
-      for (var i = 0; i < d.length; i++) {
-        if (d[i].status === 'NEW' || d[i].status === 'DELIVERED') unread++;
-      }
-      document.getElementById('notif-dot').style.display = unread > 0 ? 'block' : 'none';
-    });
-  }
-  function loadSettings() {
-    return apiGet('settings').then(function(d) { state.settings = d; });
-  }
-
-  function reload() {
-    showToast('Обновляю...', '');
-    Promise.all([loadInventory(), loadShopping(), loadNotifications()])
-      .then(function() {
-        renderInventory();
-        renderShopping();
-        renderNotifications();
-        showToast('Обновлено', 'success');
-      })
-      .catch(function(e) { showToast(e.message, 'error'); });
-  }
-
-  /* ── Helpers ──────────────────────────────────────────────────── */
-  function indexBy(arr, key) {
-    var m = {};
-    for (var i = 0; i < arr.length; i++) m[arr[i][key]] = arr[i];
+  function idx(arr,key) {
+    var m={};
+    for (var i=0;i<arr.length;i++) m[arr[i][key]]=arr[i];
     return m;
   }
-  function productName(id) { var p = state.productById[id]; return p ? p.name : '—'; }
-  function unitShort(id)   { var u = state.unitById[id];    return u ? u.shortName : ''; }
-  function placeName(id)   { var p = state.placeById[id];   return p ? p.name : '—'; }
-  function placeIcon(id)   { var p = state.placeById[id];   return (p && p.icon) ? p.icon : '📦'; }
-
-  function daysUntil(s) {
-    if (!s) return null;
-    var now = new Date(); now.setHours(0,0,0,0);
-    var exp = new Date(s); exp.setHours(0,0,0,0);
-    return Math.round((exp - now) / 86400000);
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  function expiryLabel(s) {
-    var d = daysUntil(s);
-    if (d === null) return '';
-    if (d < 0)  return 'Истёк';
-    if (d === 0) return 'Истекает сегодня';
-    if (d === 1) return 'Истекает завтра';
-    if (d <= 7)  return 'Через ' + d + ' дн.';
+  function pname(id) { var p=S.pById[id]; return p?p.name:'—'; }
+  function ushort(id){ var u=S.uById[id]; return u?u.shortName:''; }
+  function plname(id){ var p=S.plById[id]; return p?p.name:'—'; }
+  function plico(id) { var p=S.plById[id]; return (p&&p.icon)?p.icon:'📦'; }
+  function days(s) {
+    if (!s) return null;
+    var a=new Date(); a.setHours(0,0,0,0);
+    var b=new Date(s); b.setHours(0,0,0,0);
+    return Math.round((b-a)/86400000);
+  }
+  function explbl(s) {
+    var d=days(s); if(d===null) return '';
+    if(d<0) return 'Истёк';
+    if(d===0) return 'Сегодня истекает';
+    if(d===1) return 'Завтра истекает';
+    if(d<=7) return 'Через '+d+' дн.';
     return '';
   }
-  function expiryClass(s) {
-    var d = daysUntil(s);
-    if (d === null || d > 7) return 'status-ok';
-    if (d <= 3) return 'status-expired';
-    return 'status-warn';
+  function expcls(s) {
+    var d=days(s); if(d===null||d>7) return 'ok';
+    if(d<=3) return 'bad'; return 'warn';
   }
-  function fmtDate(s) {
-    if (!s) return '';
-    var d = new Date(s);
+  function fdate(s) {
+    if(!s) return '';
+    var d=new Date(s);
     return d.toLocaleDateString('ru-RU');
   }
-  function esc(s) {
-    return String(s || '')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  /* init */
+  function init() {
+    try {
+      load().then(function() {
+        document.getElementById('loading').style.display='none';
+      }).catch(function(e) { showErr(e.message); });
+    } catch(e) { showErr(e.message); }
   }
 
-  /* ── Navigation ───────────────────────────────────────────────── */
-  var TAB_TITLES = {
-    inventory:     'Инвентарь',
-    shopping:      'Список покупок',
-    notifications: 'Уведомления',
-    settings:      'Настройки'
-  };
+  function showErr(msg) {
+    document.getElementById('loading').innerHTML =
+      '<div style="color:#fca5a5;font-size:.95rem;max-width:300px">' +
+      'Ошибка подключения:<br><br>'+esc(String(msg))+'<br><br>' +
+      '<button onclick="window.location.reload()" '+
+      'style="background:#38bdf8;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:.95rem;cursor:pointer">'+
+      'Повторить</button></div>';
+  }
+
+  function load() {
+    return loadRef().then(function() {
+      return Promise.all([loadInv(), loadShop(), loadNotifs(), loadSettings()]);
+    }).then(function() {
+      renderInv(); renderShop(); renderNotifs(); renderSettings(); fillSelects();
+    });
+  }
+
+  function loadRef() {
+    return Promise.all([
+      GET('products?page=0&size=500'),
+      GET('units'),
+      GET('storage-places'),
+      GET('stores')
+    ]).then(function(r) {
+      S.prods  = r[0].content||[];
+      S.units  = r[1]||[];
+      S.places = r[2]||[];
+      S.stores = r[3]||[];
+      S.pById  = idx(S.prods,'id');
+      S.uById  = idx(S.units,'id');
+      S.plById = idx(S.places,'id');
+      S.stById = idx(S.stores,'id');
+    });
+  }
+  function loadInv()  { return GET('stock-entries?status=AVAILABLE&size=500').then(function(d){ S.inv=d.content||[]; }); }
+  function loadShop() { return GET('shopping-list?status=ACTIVE&size=500').then(function(d){ S.shop=d.content||[]; }); }
+  function loadNotifs() {
+    return GET('notifications').then(function(d) {
+      S.notifs=d||[];
+      var u=0; for(var i=0;i<d.length;i++) if(d[i].status==='NEW'||d[i].status==='DELIVERED') u++;
+      document.getElementById('ndot').style.display=u>0?'block':'none';
+    });
+  }
+  function loadSettings() { return GET('settings').then(function(d){ S.settings=d; }); }
+
+  function reload() {
+    toast('Обновляю...','');
+    Promise.all([loadInv(),loadShop(),loadNotifs()]).then(function(){
+      renderInv(); renderShop(); renderNotifs(); toast('Готово','ok');
+    }).catch(function(e){ toast(e.message,'err'); });
+  }
+
+  /* tabs */
+  var TITLES = {inventory:'Инвентарь',shopping:'Список покупок',notifications:'Уведомления',settings:'Настройки'};
 
   function showTab(tab) {
-    state.currentTab = tab;
-    each('.tab-pane', function(el) {
-      el.style.display = (el.id === 'tab-' + tab) ? 'block' : 'none';
-    });
-    each('.nav-tab', function(el) {
-      el.className = (el.getAttribute('data-tab') === tab) ? 'nav-tab active' : 'nav-tab';
-    });
-    document.getElementById('topbar-title').textContent = TAB_TITLES[tab] || '';
-    document.getElementById('fab').style.display =
-      (tab === 'inventory' || tab === 'shopping') ? '-webkit-flex' : 'none';
-    /* Reset notifications badge when viewing notifications */
-    if (tab === 'notifications') {
-      document.getElementById('notif-dot').style.display = 'none';
+    S.tab = tab;
+    var panes = document.querySelectorAll('.tab-pane');
+    for (var i=0; i<panes.length; i++) {
+      panes[i].style.display = (panes[i].id==='tab-'+tab) ? 'block' : 'none';
     }
+    var btns = document.querySelectorAll('.nav-btn');
+    for (var j=0; j<btns.length; j++) {
+      btns[j].className = btns[j].getAttribute('data-tab')===tab ? 'nav-btn active' : 'nav-btn';
+    }
+    document.getElementById('ttl').textContent = TITLES[tab]||'';
+    document.getElementById('fab').style.display =
+      (tab==='inventory'||tab==='shopping') ? 'flex' : 'none';
   }
 
   function fabAction() {
-    if (state.currentTab === 'inventory') openModal('modal-add-stock');
-    else if (state.currentTab === 'shopping') openModal('modal-add-shopping');
+    if (S.tab==='inventory')  openModal('m-stock');
+    if (S.tab==='shopping')   openModal('m-shop');
   }
 
-  /* ── Render: Inventory ────────────────────────────────────────── */
-  function renderInventory() {
-    var el = document.getElementById('inventory-list');
-    if (!state.inventory.length) {
-      el.innerHTML = '<div class="empty-state"><i class="bi bi-box-seam"></i><p>Запасов нет.<br>Нажмите + чтобы добавить</p></div>';
+  /* render inventory */
+  function renderInv() {
+    var el = document.getElementById('inv-list');
+    if (!S.inv.length) {
+      el.innerHTML='<div class="empty"><span class="ico">📦</span>Запасов нет.<br>Нажмите + чтобы добавить</div>';
       return;
     }
-    var groups = {};
-    var order  = [];
-    for (var i = 0; i < state.inventory.length; i++) {
-      var e = state.inventory[i];
-      var pid = e.storagePlaceId || 0;
-      if (!groups[pid]) { groups[pid] = []; order.push(pid); }
-      groups[pid].push(e);
+    var groups={}, order=[];
+    for (var i=0;i<S.inv.length;i++) {
+      var e=S.inv[i], k=e.storagePlaceId||0;
+      if(!groups[k]){groups[k]=[];order.push(k);}
+      groups[k].push(e);
     }
-    var html = '';
-    for (var g = 0; g < order.length; g++) {
-      var pid2 = order[g];
-      var gname = pid2 > 0 ? placeName(pid2) : 'Без места';
-      var gicon = pid2 > 0 ? placeIcon(pid2) : '📦';
-      html += '<div class="section-label">' + gicon + ' ' + esc(gname) + '</div>';
-      var items = groups[pid2];
-      for (var j = 0; j < items.length; j++) {
-        var it = items[j];
-        var cls = expiryClass(it.expiresAt);
-        var expLbl = expiryLabel(it.expiresAt);
-        var sub = '';
-        if (expLbl) sub += '<span style="color:' + (cls === 'status-expired' ? '#ef4444' : '#f59e0b') + '">' + esc(expLbl) + '</span>';
-        if (it.comment) sub += (sub ? ' · ' : '') + esc(it.comment);
-        html += '<div class="item-card ' + cls + '" onclick="App.openStockActions(' + it.id + ')">' +
-          '<div class="item-card-icon">' + gicon + '</div>' +
-          '<div class="item-card-body">' +
-            '<div class="item-card-title">' + esc(productName(it.productId)) + '</div>' +
-            (sub ? '<div class="item-card-sub">' + sub + '</div>' : '') +
-          '</div>' +
-          '<div class="item-card-qty">' + parseFloat(it.quantity) +
-            '<div class="item-card-qty-unit">' + esc(unitShort(it.unitId)) + '</div>' +
-          '</div>' +
-        '</div>';
+    var h='';
+    for (var g=0;g<order.length;g++) {
+      var k2=order[g], gico=k2>0?plico(k2):'📦', gnm=k2>0?plname(k2):'Без места';
+      h+='<div class="sec-label">'+gico+' '+esc(gnm)+'</div>';
+      var items=groups[k2];
+      for (var j=0;j<items.length;j++) {
+        var it=items[j], cls=expcls(it.expiresAt), lbl=explbl(it.expiresAt);
+        var sub=lbl?('<span style="color:'+(cls==='bad'?'#ef4444':'#f59e0b')+'">'+esc(lbl)+'</span>'):'';
+        if(it.comment) sub+=(sub?' · ':'')+esc(it.comment);
+        h+='<div class="card '+cls+'" onclick="App.openInvSheet('+it.id+')">'+
+          '<div class="card-ico">'+gico+'</div>'+
+          '<div class="card-body"><div class="card-title">'+esc(pname(it.productId))+'</div>'+
+          (sub?'<div class="card-sub">'+sub+'</div>':'')+
+          '</div><div class="card-qty">'+parseFloat(it.quantity)+'<div class="card-unit">'+esc(ushort(it.unitId))+'</div></div></div>';
       }
     }
-    el.innerHTML = html;
+    el.innerHTML=h;
   }
 
-  /* ── Render: Shopping ─────────────────────────────────────────── */
-  function renderShopping() {
-    var el = document.getElementById('shopping-list');
-    if (!state.shopping.length) {
-      el.innerHTML = '<div class="empty-state"><i class="bi bi-cart3"></i><p>Список покупок пуст</p></div>';
+  /* render shopping */
+  function renderShop() {
+    var el=document.getElementById('sh-list');
+    if (!S.shop.length) {
+      el.innerHTML='<div class="empty"><span class="ico">🛒</span>Список покупок пуст</div>';
       return;
     }
-    var groups = {}, order = [];
-    for (var i = 0; i < state.shopping.length; i++) {
-      var e = state.shopping[i];
-      var sid = e.storeId || 0;
-      if (!groups[sid]) { groups[sid] = []; order.push(sid); }
-      groups[sid].push(e);
+    var groups={}, order=[];
+    for (var i=0;i<S.shop.length;i++) {
+      var e=S.shop[i], k=e.storeId||0;
+      if(!groups[k]){groups[k]=[];order.push(k);}
+      groups[k].push(e);
     }
-    var html = '';
-    for (var g = 0; g < order.length; g++) {
-      var sid2  = order[g];
-      var store = sid2 > 0 ? state.storeById[sid2] : null;
-      var sname = store ? store.name : 'Без магазина';
-      html += '<div class="section-label"><i class="bi bi-shop"></i> ' + esc(sname) + '</div>';
-      var items = groups[sid2];
-      for (var j = 0; j < items.length; j++) {
-        var it = items[j];
-        var sub = unitShort(it.unitId);
-        if (it.comment) sub += (sub ? ' · ' : '') + it.comment;
-        html += '<div class="item-card" onclick="App.openShoppingActions(' + it.id + ')">' +
-          '<div class="check-circle"><i class="bi bi-check" style="color:transparent"></i></div>' +
-          '<div class="item-card-body" style="padding-left:12px">' +
-            '<div class="item-card-title">' + esc(it.title) + '</div>' +
-            (sub ? '<div class="item-card-sub">' + esc(sub) + '</div>' : '') +
-          '</div>' +
-          '<div class="item-card-qty">' + parseFloat(it.quantity) +
-            '<div class="item-card-qty-unit">' + esc(unitShort(it.unitId)) + '</div>' +
-          '</div>' +
-        '</div>';
+    var h='';
+    for (var g=0;g<order.length;g++) {
+      var k2=order[g], st=k2>0?S.stById[k2]:null, snm=st?st.name:'Без магазина';
+      h+='<div class="sec-label">🏪 '+esc(snm)+'</div>';
+      var items=groups[k2];
+      for (var j=0;j<items.length;j++) {
+        var it=items[j];
+        var sub=ushort(it.unitId);
+        if(it.comment) sub+=(sub?' · ':'')+it.comment;
+        h+='<div class="card" onclick="App.openShopSheet('+it.id+')">'+
+          '<div class="circle" style="width:26px;height:26px;margin-right:12px;-webkit-flex-shrink:0;flex-shrink:0;border:2px solid #cbd5e1;border-radius:50%;"></div>'+
+          '<div class="card-body"><div class="card-title">'+esc(it.title)+'</div>'+
+          (sub?'<div class="card-sub">'+esc(sub)+'</div>':'')+
+          '</div><div class="card-qty">'+parseFloat(it.quantity)+'<div class="card-unit">'+esc(ushort(it.unitId))+'</div></div></div>';
       }
     }
-    el.innerHTML = html;
+    el.innerHTML=h;
   }
 
-  /* ── Render: Notifications ────────────────────────────────────── */
-  function renderNotifications() {
-    var el = document.getElementById('notifications-list');
-    if (!state.notifications.length) {
-      el.innerHTML = '<div class="empty-state"><i class="bi bi-bell-slash"></i><p>Уведомлений нет</p></div>';
-      return;
+  /* render notifications */
+  function renderNotifs() {
+    var el=document.getElementById('notif-list');
+    if(!S.notifs.length){el.innerHTML='<div class="empty"><span class="ico">🔕</span>Уведомлений нет</div>';return;}
+    var h='';
+    for(var i=0;i<S.notifs.length;i++){
+      var n=S.notifs[i], u=(n.status==='NEW'||n.status==='DELIVERED');
+      h+='<div class="notif'+(u?' unread':'')+'" onclick="App.readNotif('+n.id+',this)">'+
+        '<div class="notif-t">'+esc(n.title)+'</div>'+
+        '<div class="notif-m">'+esc(n.message)+'</div>'+
+        '<div class="notif-d">'+fdate(n.createdAt)+'</div></div>';
     }
-    var html = '';
-    for (var i = 0; i < state.notifications.length; i++) {
-      var n = state.notifications[i];
-      var unread = n.status === 'NEW' || n.status === 'DELIVERED';
-      html += '<div class="notif-card ' + (unread ? 'unread' : '') + '" onclick="App.readNotif(' + n.id + ', this)">' +
-        '<div class="notif-title">' + esc(n.title) + '</div>' +
-        '<div class="notif-msg">'   + esc(n.message) + '</div>' +
-        '<div class="notif-time">'  + fmtDate(n.createdAt) + '</div>' +
-      '</div>';
-    }
-    el.innerHTML = html;
+    el.innerHTML=h;
   }
 
-  function readNotif(id, el) {
-    apiPost('notifications/' + id + '/read', {})
-      .then(function() {
-        el.className = 'notif-card';
-        loadNotifications();
-      })
-      .catch(function(e) { showToast(e.message, 'error'); });
+  function readNotif(id,el){
+    POST('notifications/'+id+'/read',{}).then(function(){
+      el.className='notif'; loadNotifs();
+    }).catch(function(e){toast(e.message,'err');});
   }
 
-  /* ── Render: Settings ─────────────────────────────────────────── */
+  /* render settings */
   function renderSettings() {
-    var s = state.settings || {};
-    var html =
-      '<div class="section-label-settings">Уведомления о сроках</div>' +
-      '<div class="settings-section">' +
-        sToggle('s-notify-expiring', 'Истекает срок',        'Предупреждать заблаговременно', s.notifyExpiring) +
-        sToggle('s-notify-expired',  'Просрочено',           'Когда срок уже истёк',          s.notifyExpired) +
-        sToggle('s-notify-old',      'Давно не используется','',                              s.notifyOldItems) +
-        sToggle('s-notify-stock',    'Закончился продукт',   '',                              s.notifyOutOfStock) +
-      '</div>' +
-      '<div class="section-label-settings">Параметры</div>' +
-      '<div class="settings-section">' +
-        '<div class="settings-row">' +
-          '<div class="settings-row-label">Предупреждать за (дней)<small>До истечения срока</small></div>' +
-          '<input class="settings-input" type="number" id="s-expiry-days" min="1" max="30" value="' + (s.expiryDaysBeforeNotify || 3) + '">' +
-        '</div>' +
-        '<div class="settings-row">' +
-          '<div class="settings-row-label">Частота уведомлений<small>Минут между уведомлениями</small></div>' +
-          '<input class="settings-input" type="number" id="s-freq" min="5" max="1440" value="' + (s.maxFrequencyMinutes || 60) + '">' +
-        '</div>' +
-      '</div>' +
-      '<div class="settings-section">' +
-        '<div class="settings-row" onclick="window.location.href=\'/admin/index.html\'">' +
-          '<div class="settings-row-label">Управление каталогом<small>Продукты, категории, магазины...</small></div>' +
-          '<i class="bi bi-chevron-right" style="color:#94a3b8"></i>' +
-        '</div>' +
-      '</div>' +
-      '<div style="margin-top:8px">' +
-        '<button class="btn-primary-lg" onclick="App.saveSettings()">Сохранить настройки</button>' +
-      '</div>';
-    document.getElementById('settings-content').innerHTML = html;
-  }
-
-  function sToggle(id, label, sub, checked) {
-    return '<div class="settings-row">' +
-      '<div class="settings-row-label">' + esc(label) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' +
-      '<label class="ios-toggle">' +
-        '<input type="checkbox" id="' + id + '" ' + (checked ? 'checked' : '') + '>' +
-        '<div class="toggle-track"></div>' +
-      '</label>' +
-    '</div>';
+    var s=S.settings||{};
+    function tog(id,lbl,sub,chk){
+      return '<div class="s-row"><div class="s-lbl">'+esc(lbl)+(sub?'<small>'+esc(sub)+'</small>':'')+
+        '</div><label class="toggle"><input type="checkbox" id="'+id+'"'+(chk?' checked':'')+'>'+
+        '<div class="track"></div></label></div>';
+    }
+    var h='<div class="s-lbl2">Уведомления</div><div class="s-section">'+
+      tog('s-exp','Истекает срок','Предупреждать заблаговременно',s.notifyExpiring)+
+      tog('s-expd','Просрочено','Когда срок истёк',s.notifyExpired)+
+      tog('s-old','Давно не используется','',s.notifyOldItems)+
+      tog('s-stk','Закончился продукт','',s.notifyOutOfStock)+
+      '</div><div class="s-lbl2">Параметры</div><div class="s-section">'+
+      '<div class="s-row"><div class="s-lbl">Предупреждать за (дней)<small>До истечения срока</small></div>'+
+      '<input class="s-input" type="number" id="s-days" min="1" max="30" value="'+(s.expiryDaysBeforeNotify||3)+'"></div>'+
+      '<div class="s-row"><div class="s-lbl">Частота уведомлений<small>Минут между уведомлениями</small></div>'+
+      '<input class="s-input" type="number" id="s-freq" min="5" max="1440" value="'+(s.maxFrequencyMinutes||60)+'"></div>'+
+      '</div><div class="s-section">'+
+      '<div class="s-row" onclick="window.location.href=\'/admin/index.html\'">'+
+      '<div class="s-lbl">Управление каталогом<small>Продукты, категории, магазины...</small></div><span style="color:#94a3b8">›</span></div>'+
+      '</div><div style="margin-top:8px">'+
+      '<button class="btn-main" onclick="App.saveSettings()">Сохранить</button></div>';
+    document.getElementById('set-body').innerHTML=h;
   }
 
   function saveSettings() {
-    function chk(id) { var el = document.getElementById(id); return !!(el && el.checked); }
-    function num(id) { var el = document.getElementById(id); return el ? parseInt(el.value, 10) : 0; }
-    var body = {
-      userKey: (state.settings && state.settings.userKey) || 'default',
-      notifyExpiring:          chk('s-notify-expiring'),
-      notifyExpired:           chk('s-notify-expired'),
-      notifyOldItems:          chk('s-notify-old'),
-      notifyOutOfStock:        chk('s-notify-stock'),
-      expiryDaysBeforeNotify:  num('s-expiry-days') || 3,
-      maxFrequencyMinutes:     num('s-freq') || 60,
-      quietHoursStart: (state.settings && state.settings.quietHoursStart) || null,
-      quietHoursEnd:   (state.settings && state.settings.quietHoursEnd)   || null
-    };
-    apiPut('settings', body)
-      .then(function(d) { state.settings = d; showToast('Сохранено', 'success'); })
-      .catch(function(e) { showToast(e.message, 'error'); });
+    function chk(id){var e=document.getElementById(id);return !!(e&&e.checked);}
+    function num(id){var e=document.getElementById(id);return e?parseInt(e.value,10):0;}
+    PUT('settings',{
+      userKey:(S.settings&&S.settings.userKey)||'default',
+      notifyExpiring:chk('s-exp'), notifyExpired:chk('s-expd'),
+      notifyOldItems:chk('s-old'), notifyOutOfStock:chk('s-stk'),
+      expiryDaysBeforeNotify:num('s-days')||3,
+      maxFrequencyMinutes:num('s-freq')||60,
+      quietHoursStart:(S.settings&&S.settings.quietHoursStart)||null,
+      quietHoursEnd:(S.settings&&S.settings.quietHoursEnd)||null
+    }).then(function(d){S.settings=d;toast('Сохранено','ok');})
+    .catch(function(e){toast(e.message,'err');});
   }
 
-  /* ── Selects ──────────────────────────────────────────────────── */
-  function populateSelects() {
-    fillSelect('as-product', state.products, function(p) { return p.name; }, '— выберите продукт —');
-    fillSelect('as-unit',    state.units,    function(u) { return u.name + ' (' + u.shortName + ')'; }, null);
-    fillSelect('as-place',   state.places,   function(p) { return p.name; }, null);
-    fillSelect('sh-product', state.products, function(p) { return p.name; }, '— не выбран —');
-    fillSelect('sh-unit',    state.units,    function(u) { return u.name + ' (' + u.shortName + ')'; }, '— не указана —');
-    fillSelect('sh-store',   state.stores,   function(s) { return s.name; }, '— любой —');
-    fillSelect('purchase-place', state.places, function(p) { return p.name; }, null);
+  /* selects */
+  function fillSelects() {
+    fill('as-prod', S.prods, function(p){return p.name;}, '— выберите —');
+    fill('as-unit', S.units, function(u){return u.name+' ('+u.shortName+')';}, null);
+    fill('as-place',S.places,function(p){return p.name;}, null);
+    fill('sh-prod', S.prods, function(p){return p.name;}, '— не выбран —');
+    fill('sh-unit', S.units, function(u){return u.name+' ('+u.shortName+')';}, '— не указана —');
+    fill('sh-store',S.stores,function(s){return s.name;}, '— любой —');
+    fill('buy-place',S.places,function(p){return p.name;}, null);
   }
-
-  function fillSelect(id, items, labelFn, empty) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var html = empty ? '<option value="">' + esc(empty) + '</option>' : '';
-    for (var i = 0; i < items.length; i++) {
-      html += '<option value="' + items[i].id + '">' + esc(labelFn(items[i])) + '</option>';
-    }
-    el.innerHTML = html;
+  function fill(id,items,fn,empty){
+    var el=document.getElementById(id); if(!el)return;
+    var h=empty?'<option value="">'+esc(empty)+'</option>':'';
+    for(var i=0;i<items.length;i++) h+='<option value="'+items[i].id+'">'+esc(fn(items[i]))+'</option>';
+    el.innerHTML=h;
   }
+  function setv(id,val){var e=document.getElementById(id);if(e&&val!=null)e.value=String(val);}
 
-  function setVal(id, val) {
-    var el = document.getElementById(id);
-    if (el && val != null) el.value = String(val);
-  }
-
-  /* ── Stock actions ────────────────────────────────────────────── */
-  function openStockActions(id) {
-    var e = findById(state.inventory, id);
-    if (!e) return;
-    state.actionStockId = id;
-    var expLbl = expiryLabel(e.expiresAt);
-    var sub = 'Доступно: ' + parseFloat(e.quantity) + ' ' + unitShort(e.unitId);
-    if (expLbl) sub += ' · ' + expLbl;
-    document.getElementById('sheet-title').innerHTML =
-      '<strong>' + esc(productName(e.productId)) + '</strong>' +
-      '<br><span class="sheet-subtitle">' + esc(sub) + '</span>';
-    document.getElementById('sheet-actions').innerHTML =
-      '<button class="sheet-action" onclick="App.startConsume(' + id + ')">' +
-        '<i class="bi bi-cup-straw"></i>Использовал</button>' +
-      '<button class="sheet-action danger" onclick="App.quickDiscard(' + id + ')">' +
-        '<i class="bi bi-trash3"></i>Выбросить / Списать</button>';
+  /* inventory sheet */
+  function openInvSheet(id) {
+    var e=byId(S.inv,id); if(!e)return;
+    S.stockId=id;
+    var lbl=explbl(e.expiresAt);
+    var sub='Доступно: '+parseFloat(e.quantity)+' '+ushort(e.unitId)+(lbl?' · '+lbl:'');
+    document.getElementById('sheet-ttl').innerHTML='<strong>'+esc(pname(e.productId))+'</strong>'+
+      '<br><span class="sheet-sub">'+esc(sub)+'</span>';
+    document.getElementById('sheet-body').innerHTML=
+      '<button class="sheet-btn" onclick="App.startConsume('+id+')"><span class="ico">🥤</span>Использовал</button>'+
+      '<button class="sheet-btn red" onclick="App.doDiscard('+id+')"><span class="ico">🗑</span>Выбросить / Списать</button>';
     openSheet();
   }
 
   function startConsume(id) {
     closeSheet();
-    var e = findById(state.inventory, id);
-    if (!e) return;
-    state.actionStockId = id;
-    document.getElementById('consume-name').textContent = productName(e.productId);
-    document.getElementById('consume-available').textContent =
-      'Доступно: ' + parseFloat(e.quantity) + ' ' + unitShort(e.unitId);
-    document.getElementById('consume-qty').value = parseFloat(e.quantity);
-    openModal('modal-consume');
+    var e=byId(S.inv,id); if(!e)return;
+    S.stockId=id;
+    document.getElementById('con-name').textContent=pname(e.productId);
+    document.getElementById('con-avail').textContent='Доступно: '+parseFloat(e.quantity)+' '+ushort(e.unitId);
+    document.getElementById('con-qty').value=parseFloat(e.quantity);
+    openModal('m-consume');
   }
-
-  function submitConsume() {
-    var id  = state.actionStockId;
-    var qty = parseFloat(document.getElementById('consume-qty').value);
-    if (!qty || qty <= 0) { showToast('Укажи количество', 'error'); return; }
-    apiPost('stock-entries/' + id + '/consume', { quantity: qty })
-      .then(function() {
-        closeModal('modal-consume');
-        showToast('Списано!', 'success');
-        return loadInventory();
-      })
-      .then(renderInventory)
-      .catch(function(e) { showToast(e.message, 'error'); });
+  function doConsume() {
+    var qty=parseFloat(document.getElementById('con-qty').value);
+    if(!qty||qty<=0){toast('Укажи количество','err');return;}
+    POST('stock-entries/'+S.stockId+'/consume',{quantity:qty}).then(function(){
+      closeModal('m-consume'); toast('Списано!','ok'); return loadInv();
+    }).then(renderInv).catch(function(e){toast(e.message,'err');});
   }
-
-  function quickDiscard(id) {
+  function doDiscard(id) {
     closeSheet();
-    if (!confirm('Списать как выброшенное?')) return;
-    apiPost('stock-entries/' + id + '/discard', {})
-      .then(function() { showToast('Списано', 'success'); return loadInventory(); })
-      .then(renderInventory)
-      .catch(function(e) { showToast(e.message, 'error'); });
+    if(!confirm('Списать как выброшенное?'))return;
+    POST('stock-entries/'+id+'/discard',{}).then(function(){
+      toast('Списано','ok'); return loadInv();
+    }).then(renderInv).catch(function(e){toast(e.message,'err');});
   }
 
-  function onProductChange() {
-    var pid = parseInt(document.getElementById('as-product').value, 10);
-    if (!pid) return;
-    var p = state.productById[pid];
-    if (!p) return;
-    if (p.defaultUnitId)         setVal('as-unit',  p.defaultUnitId);
-    if (p.defaultStoragePlaceId) setVal('as-place', p.defaultStoragePlaceId);
+  function onProdChange() {
+    var pid=parseInt(document.getElementById('as-prod').value,10); if(!pid)return;
+    var p=S.pById[pid]; if(!p)return;
+    if(p.defaultUnitId)         setv('as-unit',p.defaultUnitId);
+    if(p.defaultStoragePlaceId) setv('as-place',p.defaultStoragePlaceId);
+  }
+  function addStock() {
+    var pid=parseInt(document.getElementById('as-prod').value,10);
+    var qty=parseFloat(document.getElementById('as-qty').value);
+    var uid=parseInt(document.getElementById('as-unit').value,10);
+    var plid=parseInt(document.getElementById('as-place').value,10);
+    var exp=document.getElementById('as-exp').value;
+    var note=document.getElementById('as-note').value.trim();
+    if(!pid){toast('Выберите продукт','err');return;}
+    if(!qty){toast('Укажите количество','err');return;}
+    if(!uid){toast('Выберите единицу','err');return;}
+    if(!plid){toast('Выберите место','err');return;}
+    POST('stock-entries',{productId:pid,quantity:qty,unitId:uid,storagePlaceId:plid,
+      expiresAt:exp?exp+'T00:00:00+00:00':null,comment:note||null}).then(function(){
+      closeModal('m-stock');
+      document.getElementById('as-prod').value='';
+      document.getElementById('as-qty').value='1';
+      document.getElementById('as-exp').value='';
+      document.getElementById('as-note').value='';
+      toast('Добавлено!','ok'); return loadInv();
+    }).then(renderInv).catch(function(e){toast(e.message,'err');});
   }
 
-  function submitAddStock() {
-    var pid     = parseInt(document.getElementById('as-product').value, 10);
-    var qty     = parseFloat(document.getElementById('as-qty').value);
-    var uid     = parseInt(document.getElementById('as-unit').value, 10);
-    var placeId = parseInt(document.getElementById('as-place').value, 10);
-    var expires = document.getElementById('as-expires').value;
-    var comment = document.getElementById('as-comment').value.trim();
-    if (!pid)     { showToast('Выберите продукт',        'error'); return; }
-    if (!qty)     { showToast('Укажите количество',      'error'); return; }
-    if (!uid)     { showToast('Выберите единицу',        'error'); return; }
-    if (!placeId) { showToast('Выберите место хранения', 'error'); return; }
-    apiPost('stock-entries', {
-      productId:       pid,
-      quantity:        qty,
-      unitId:          uid,
-      storagePlaceId:  placeId,
-      expiresAt:       expires ? expires + 'T00:00:00+00:00' : null,
-      comment:         comment || null
-    })
-    .then(function() {
-      closeModal('modal-add-stock');
-      resetForm(['as-product','as-expires','as-comment']);
-      document.getElementById('as-qty').value = '1';
-      showToast('Добавлено в запасы!', 'success');
-      return loadInventory();
-    })
-    .then(renderInventory)
-    .catch(function(e) { showToast(e.message, 'error'); });
-  }
-
-  /* ── Shopping actions ─────────────────────────────────────────── */
-  function openShoppingActions(id) {
-    var e = findById(state.shopping, id);
-    if (!e) return;
-    state.actionShoppingId = id;
-    document.getElementById('sheet-title').innerHTML =
-      '<strong>' + esc(e.title) + '</strong>' +
-      '<br><span class="sheet-subtitle">' + parseFloat(e.quantity) + ' ' + esc(unitShort(e.unitId)) + '</span>';
-    document.getElementById('sheet-actions').innerHTML =
-      '<button class="sheet-action" onclick="App.startPurchase(' + id + ')">' +
-        '<i class="bi bi-bag-check"></i>Купил — добавить в запасы</button>' +
-      '<button class="sheet-action danger" onclick="App.cancelShoppingItem(' + id + ')">' +
-        '<i class="bi bi-x-circle"></i>Убрать из списка</button>';
+  /* shopping sheet */
+  function openShopSheet(id) {
+    var e=byId(S.shop,id); if(!e)return;
+    S.shopId=id;
+    document.getElementById('sheet-ttl').innerHTML='<strong>'+esc(e.title)+'</strong>'+
+      '<br><span class="sheet-sub">'+parseFloat(e.quantity)+' '+esc(ushort(e.unitId))+'</span>';
+    document.getElementById('sheet-body').innerHTML=
+      '<button class="sheet-btn" onclick="App.startBuy('+id+')"><span class="ico">🛍</span>Купил — добавить в запасы</button>'+
+      '<button class="sheet-btn red" onclick="App.removeShop('+id+')"><span class="ico">✕</span>Убрать из списка</button>';
     openSheet();
   }
 
-  function startPurchase(id) {
+  function startBuy(id) {
     closeSheet();
-    var e = findById(state.shopping, id);
-    if (!e) return;
-    state.actionShoppingId = id;
-    document.getElementById('purchase-name').textContent = e.title;
-    document.getElementById('purchase-qty').value = parseFloat(e.quantity);
-    document.getElementById('purchase-expires').value = '';
-    document.getElementById('purchase-comment').value = '';
-    if (e.productId) {
-      var p = state.productById[e.productId];
-      if (p && p.defaultStoragePlaceId) setVal('purchase-place', p.defaultStoragePlaceId);
-    }
-    openModal('modal-purchase');
+    var e=byId(S.shop,id); if(!e)return;
+    S.shopId=id;
+    document.getElementById('buy-name').textContent=e.title;
+    document.getElementById('buy-qty').value=parseFloat(e.quantity);
+    document.getElementById('buy-exp').value='';
+    document.getElementById('buy-note').value='';
+    if(e.productId){var p=S.pById[e.productId];if(p&&p.defaultStoragePlaceId)setv('buy-place',p.defaultStoragePlaceId);}
+    openModal('m-buy');
   }
-
-  function submitPurchase() {
-    var id      = state.actionShoppingId;
-    var qty     = parseFloat(document.getElementById('purchase-qty').value);
-    var placeId = parseInt(document.getElementById('purchase-place').value, 10);
-    var expires = document.getElementById('purchase-expires').value;
-    var comment = document.getElementById('purchase-comment').value.trim();
-    if (!qty)     { showToast('Укажите количество',      'error'); return; }
-    if (!placeId) { showToast('Выберите место хранения', 'error'); return; }
-    apiPost('purchases/process', {
-      shoppingListItemId: id,
-      actualQuantity:     qty,
-      storagePlaceId:     placeId,
-      expiresAt:          expires ? expires + 'T00:00:00+00:00' : null,
-      comment:            comment || null
-    })
-    .then(function() {
-      closeModal('modal-purchase');
-      showToast('Добавлено в инвентарь!', 'success');
-      return Promise.all([loadInventory(), loadShopping()]);
-    })
-    .then(function() { renderInventory(); renderShopping(); })
-    .catch(function(e) { showToast(e.message, 'error'); });
+  function doBuy() {
+    var qty=parseFloat(document.getElementById('buy-qty').value);
+    var plid=parseInt(document.getElementById('buy-place').value,10);
+    var exp=document.getElementById('buy-exp').value;
+    var note=document.getElementById('buy-note').value.trim();
+    if(!qty){toast('Укажите количество','err');return;}
+    if(!plid){toast('Выберите место','err');return;}
+    POST('purchases/process',{shoppingListItemId:S.shopId,actualQuantity:qty,storagePlaceId:plid,
+      expiresAt:exp?exp+'T00:00:00+00:00':null,comment:note||null}).then(function(){
+      closeModal('m-buy'); toast('Добавлено в инвентарь!','ok');
+      return Promise.all([loadInv(),loadShop()]);
+    }).then(function(){renderInv();renderShop();}).catch(function(e){toast(e.message,'err');});
   }
-
-  function cancelShoppingItem(id) {
+  function removeShop(id) {
     closeSheet();
-    if (!confirm('Убрать из списка покупок?')) return;
-    apiPost('shopping-list/' + id + '/complete', {})
-      .then(function() { showToast('Убрано из списка', 'success'); return loadShopping(); })
-      .then(renderShopping)
-      .catch(function(e) { showToast(e.message, 'error'); });
+    if(!confirm('Убрать из списка?'))return;
+    POST('shopping-list/'+id+'/complete',{}).then(function(){
+      toast('Убрано','ok'); return loadShop();
+    }).then(renderShop).catch(function(e){toast(e.message,'err');});
   }
 
-  function onShProductChange() {
-    var pid = parseInt(document.getElementById('sh-product').value, 10);
-    if (!pid) return;
-    var p = state.productById[pid];
-    if (!p) return;
-    var titleEl = document.getElementById('sh-title');
-    if (!titleEl.value) titleEl.value = p.name;
-    if (p.defaultUnitId)  setVal('sh-unit',  p.defaultUnitId);
-    if (p.defaultStoreId) setVal('sh-store', p.defaultStoreId);
+  function onShProdChange() {
+    var pid=parseInt(document.getElementById('sh-prod').value,10); if(!pid)return;
+    var p=S.pById[pid]; if(!p)return;
+    var t=document.getElementById('sh-title'); if(!t.value)t.value=p.name;
+    if(p.defaultUnitId)  setv('sh-unit',p.defaultUnitId);
+    if(p.defaultStoreId) setv('sh-store',p.defaultStoreId);
+  }
+  function addShopping() {
+    var title=document.getElementById('sh-title').value.trim();
+    var qty=parseFloat(document.getElementById('sh-qty').value);
+    var pid=document.getElementById('sh-prod').value;
+    var uid=document.getElementById('sh-unit').value;
+    var sid=document.getElementById('sh-store').value;
+    var note=document.getElementById('sh-note').value.trim();
+    if(!title){toast('Укажите название','err');return;}
+    if(!qty){toast('Укажите количество','err');return;}
+    POST('shopping-list',{title:title,quantity:qty,source:'MANUAL',sortOrder:S.shop.length,
+      productId:pid?parseInt(pid,10):null, unitId:uid?parseInt(uid,10):null,
+      storeId:sid?parseInt(sid,10):null, comment:note||null}).then(function(){
+      closeModal('m-shop');
+      document.getElementById('sh-title').value='';
+      document.getElementById('sh-prod').value='';
+      document.getElementById('sh-qty').value='1';
+      document.getElementById('sh-unit').value='';
+      document.getElementById('sh-store').value='';
+      document.getElementById('sh-note').value='';
+      toast('Добавлено!','ok'); return loadShop();
+    }).then(renderShop).catch(function(e){toast(e.message,'err');});
   }
 
-  function submitAddShopping() {
-    var title   = document.getElementById('sh-title').value.trim();
-    var qty     = parseFloat(document.getElementById('sh-qty').value);
-    var pid     = document.getElementById('sh-product').value;
-    var uid     = document.getElementById('sh-unit').value;
-    var sid     = document.getElementById('sh-store').value;
-    var comment = document.getElementById('sh-comment').value.trim();
-    if (!title) { showToast('Укажите название', 'error'); return; }
-    if (!qty)   { showToast('Укажите количество', 'error'); return; }
-    apiPost('shopping-list', {
-      title:     title,
-      quantity:  qty,
-      productId: pid ? parseInt(pid, 10) : null,
-      unitId:    uid ? parseInt(uid, 10) : null,
-      storeId:   sid ? parseInt(sid, 10) : null,
-      source:    'MANUAL',
-      sortOrder: state.shopping.length,
-      comment:   comment || null
-    })
-    .then(function() {
-      closeModal('modal-add-shopping');
-      resetForm(['sh-title','sh-comment']);
-      document.getElementById('sh-product').value = '';
-      document.getElementById('sh-unit').value = '';
-      document.getElementById('sh-store').value = '';
-      document.getElementById('sh-qty').value = '1';
-      showToast('Добавлено в список!', 'success');
-      return loadShopping();
-    })
-    .then(renderShopping)
-    .catch(function(e) { showToast(e.message, 'error'); });
+  /* stepper */
+  function step(id, d) {
+    var e=document.getElementById(id); if(!e)return;
+    e.value=Math.max(0.001, Math.round((parseFloat(e.value||0)+d)*1000)/1000);
   }
 
-  /* ── Qty stepper ──────────────────────────────────────────────── */
-  function stepQty(id, delta) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    var v = Math.round((parseFloat(el.value || 0) + delta) * 1000) / 1000;
-    el.value = Math.max(0.001, v);
+  /* sheet/modal */
+  function openSheet(){
+    document.getElementById('backdrop').className='backdrop open';
+    document.getElementById('sheet').className='sheet open';
+  }
+  function closeSheet(){
+    document.getElementById('backdrop').className='backdrop';
+    document.getElementById('sheet').className='sheet';
+  }
+  function openModal(id){var e=document.getElementById(id);if(e)e.className='modal open';}
+  function closeModal(id){var e=document.getElementById(id);if(e)e.className='modal';}
+
+  /* toast */
+  var _tt=null;
+  function toast(msg,type){
+    var e=document.getElementById('toast');
+    e.textContent=msg; e.className=type||''; e.style.display='block';
+    if(_tt)clearTimeout(_tt);
+    _tt=setTimeout(function(){e.style.display='none';},2500);
   }
 
-  /* ── Sheet ────────────────────────────────────────────────────── */
-  function openSheet() {
-    document.getElementById('sheet-backdrop').className = 'sheet-backdrop open';
-    document.getElementById('action-sheet').className   = 'bottom-sheet open';
-  }
-  function closeSheet() {
-    document.getElementById('sheet-backdrop').className = 'sheet-backdrop';
-    document.getElementById('action-sheet').className   = 'bottom-sheet';
-  }
-
-  /* ── Modals ───────────────────────────────────────────────────── */
-  function openModal(id) {
-    var el = document.getElementById(id);
-    if (el) el.className = 'full-modal open';
-  }
-  function closeModal(id) {
-    var el = document.getElementById(id);
-    if (el) el.className = 'full-modal';
-  }
-
-  /* ── Toast ────────────────────────────────────────────────────── */
-  var toastTimer = null;
-  function showToast(msg, type) {
-    var el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className = type || '';
-    el.style.display = 'block';
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(function() { el.style.display = 'none'; }, 2500);
-  }
-
-  /* ── Utils ────────────────────────────────────────────────────── */
-  function findById(arr, id) {
-    for (var i = 0; i < arr.length; i++) {
-      if (arr[i].id === id) return arr[i];
-    }
-    return null;
-  }
-  function resetForm(ids) {
-    for (var i = 0; i < ids.length; i++) {
-      var el = document.getElementById(ids[i]);
-      if (el) el.value = '';
-    }
-  }
-
-  /* ── Public ───────────────────────────────────────────────────── */
   return {
-    init: init,
-    reload: reload,
-    showTab: showTab,
-    fabAction: fabAction,
-    openStockActions: openStockActions,
-    startConsume: startConsume,
-    submitConsume: submitConsume,
-    quickDiscard: quickDiscard,
-    onProductChange: onProductChange,
-    submitAddStock: submitAddStock,
-    openShoppingActions: openShoppingActions,
-    startPurchase: startPurchase,
-    submitPurchase: submitPurchase,
-    cancelShoppingItem: cancelShoppingItem,
-    onShProductChange: onShProductChange,
-    submitAddShopping: submitAddShopping,
-    readNotif: readNotif,
-    saveSettings: saveSettings,
-    stepQty: stepQty,
-    closeSheet: closeSheet,
-    openModal: openModal,
-    closeModal: closeModal
+    init:init, reload:reload, showTab:showTab, fabAction:fabAction,
+    openInvSheet:openInvSheet, startConsume:startConsume, doConsume:doConsume,
+    doDiscard:doDiscard, onProdChange:onProdChange, addStock:addStock,
+    openShopSheet:openShopSheet, startBuy:startBuy, doBuy:doBuy,
+    removeShop:removeShop, onShProdChange:onShProdChange, addShopping:addShopping,
+    readNotif:readNotif, saveSettings:saveSettings,
+    step:step, closeSheet:closeSheet, openModal:openModal, closeModal:closeModal
   };
 })();
 
-document.addEventListener('DOMContentLoaded', function() { App.init(); });
+App.init();
 </script>
 </body>
 </html>
