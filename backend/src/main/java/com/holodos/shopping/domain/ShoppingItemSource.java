@@ -4,5 +4,6 @@ public enum ShoppingItemSource {
     MANUAL,
     AUTO_REPLENISHMENT,
     KEEP_SYNC,
-    IMPORT
+    IMPORT,
+    TASKS_SYNC
 }

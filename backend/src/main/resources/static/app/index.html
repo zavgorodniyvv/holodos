@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Holodos">
+  <title>Holodos</title>
+  <!-- БЕЗ ВНЕШНИХ ЗАВИСИМОСТЕЙ — работает без интернета, любой iOS -->
+  <style>
+    *,*:before,*:after{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;box-sizing:border-box;}
+    html,body{height:100%;overflow:hidden;margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:16px;}
+    #app{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;height:100%;}
+    /* topbar */
+    .topbar{background:#1e3a5f;color:#fff;padding:0 12px;height:52px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;-webkit-flex-shrink:0;flex-shrink:0;}
+    .topbar-title{font-size:1.05rem;font-weight:700;}
+    .topbar-btns{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;}
+    .topbar-btn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:44px;height:44px;font-size:1.1rem;margin-left:8px;position:relative;cursor:pointer;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;}
+    .badge-dot{position:absolute;top:6px;right:6px;width:9px;height:9px;background:#ef4444;border-radius:50%;border:2px solid #1e3a5f;}
+    /* tabs */
+    .tab-area{-webkit-box-flex:1;-webkit-flex:1;flex:1;overflow:hidden;position:relative;}
+    .tab-pane{display:none;position:absolute;top:0;right:0;bottom:0;left:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 10px 76px;}
+    .tab-pane.active{display:block;}
+    /* bottom nav */
+    .bottom-nav{background:#fff;border-top:1px solid #e2e8f0;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-shrink:0;flex-shrink:0;height:60px;}
+    .nav-btn{-webkit-box-flex:1;-webkit-flex:1;flex:1;border:none;background:none;color:#94a3b8;font-size:0.65rem;font-weight:600;cursor:pointer;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;padding:6px 0;}
+    .nav-btn .ico{font-size:1.5rem;line-height:1;display:block;margin-bottom:1px;}
+    .nav-btn.active{color:#1e3a5f;}
+    /* fab */
+    .fab{position:fixed;bottom:72px;right:14px;width:58px;height:58px;border-radius:50%;background:#1e3a5f;color:#fff;font-size:2rem;border:none;-webkit-box-shadow:0 4px 14px rgba(0,0,0,.3);box-shadow:0 4px 14px rgba(0,0,0,.3);display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;z-index:200;cursor:pointer;-webkit-transition:-webkit-transform .15s;transition:transform .15s;}
+    .fab:active{-webkit-transform:scale(.92);transform:scale(.92);}
+    /* cards */
+    .sec-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:12px 2px 5px;}
+    .card{background:#fff;border-radius:12px;margin-bottom:8px;padding:13px 14px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;border-left:4px solid transparent;}
+    .card:active{background:#f0f7ff;}
+    .card.ok{border-left-color:#10b981;}
+    .card.warn{border-left-color:#f59e0b;}
+    .card.bad{border-left-color:#ef4444;}
+    .card-ico{font-size:1.6rem;width:40px;text-align:center;-webkit-flex-shrink:0;flex-shrink:0;}
+    .card-body{-webkit-box-flex:1;-webkit-flex:1;flex:1;min-width:0;padding:0 10px;}
+    .card-title{font-size:.97rem;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .card-sub{font-size:.8rem;color:#64748b;margin-top:2px;}
+    .card-qty{font-size:.97rem;font-weight:700;color:#1e3a5f;text-align:right;-webkit-flex-shrink:0;flex-shrink:0;white-space:nowrap;}
+    .card-unit{font-size:.72rem;color:#64748b;font-weight:400;}
+    .circle{width:28px;height:28px;border-radius:50%;border:2px solid #cbd5e1;-webkit-flex-shrink:0;flex-shrink:0;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;font-size:.9rem;color:transparent;}
+    /* empty */
+    .empty{text-align:center;padding:60px 20px;color:#94a3b8;}
+    .empty .ico{font-size:3rem;display:block;margin-bottom:10px;}
+    /* loading */
+    #loading{position:fixed;top:0;right:0;bottom:0;left:0;background:#1e3a5f;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;z-index:9999;color:#fff;text-align:center;padding:20px;}
+    .logo{font-size:2.8rem;font-weight:800;margin-bottom:24px;}
+    .logo span{color:#38bdf8;}
+    .spinner{width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;-webkit-animation:spin .8s linear infinite;animation:spin .8s linear infinite;}
+    @-webkit-keyframes spin{to{-webkit-transform:rotate(360deg);}}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    /* sheet */
+    .backdrop{display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.45);z-index:500;}
+    .backdrop.open{display:block;}
+    .sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;z-index:501;padding-bottom:14px;-webkit-transform:translateY(100%);transform:translateY(100%);-webkit-transition:-webkit-transform .26s ease-out;transition:transform .26s ease-out;max-height:85%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .sheet.open{-webkit-transform:translateY(0);transform:translateY(0);}
+    .sheet-handle{width:38px;height:4px;background:#e2e8f0;border-radius:2px;margin:10px auto 0;}
+    .sheet-title{font-size:1rem;font-weight:700;color:#1e293b;padding:12px 16px 8px;border-bottom:1px solid #f1f5f9;}
+    .sheet-sub{font-size:.83rem;color:#64748b;font-weight:400;}
+    .sheet-btn{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:15px 16px;font-size:1rem;color:#1e293b;border:none;background:none;width:100%;text-align:left;border-bottom:1px solid #f8fafc;cursor:pointer;}
+    .sheet-btn:active{background:#f0f7ff;}
+    .sheet-btn .ico{font-size:1.3rem;width:28px;margin-right:12px;}
+    .sheet-btn.red{color:#ef4444;}
+    .sheet-cancel{display:block;width:calc(100% - 28px);margin:8px 14px 0;padding:13px;border-radius:12px;background:#f1f5f9;border:none;font-size:1rem;font-weight:600;color:#64748b;cursor:pointer;}
+    /* modal */
+    .modal{display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:#f0f4f8;z-index:600;-webkit-box-orient:vertical;-webkit-flex-direction:column;flex-direction:column;}
+    .modal.open{display:-webkit-box;display:-webkit-flex;display:flex;}
+    .modal-top{background:#1e3a5f;color:#fff;padding:0 14px;height:52px;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-flex-shrink:0;flex-shrink:0;}
+    .modal-back{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:44px;height:44px;font-size:1.4rem;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-flex-shrink:0;flex-shrink:0;cursor:pointer;}
+    .modal-ttl{font-size:1rem;font-weight:700;-webkit-box-flex:1;-webkit-flex:1;flex:1;margin-left:12px;}
+    .modal-scroll{-webkit-box-flex:1;-webkit-flex:1;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;}
+    .modal-foot{padding:12px 14px;background:#fff;border-top:1px solid #e2e8f0;-webkit-flex-shrink:0;flex-shrink:0;}
+    /* forms */
+    .fg{margin-bottom:16px;}
+    .flbl{font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px;}
+    .fin{height:50px;font-size:1rem;border-radius:10px;border:1.5px solid #e2e8f0;padding:0 13px;background:#fff;color:#1e293b;width:100%;-webkit-appearance:none;display:block;outline:none;}
+    .fin:focus{border-color:#1e3a5f;}
+    select.fin{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%2364748b' viewBox='0 0 16 16'%3e%3cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 12px center;background-size:13px;padding-right:34px;}
+    textarea.fin{height:auto;padding:11px 13px;resize:none;}
+    .stepper{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden;}
+    .step-btn{width:58px;height:50px;background:#f8fafc;border:none;font-size:1.6rem;color:#1e3a5f;-webkit-flex-shrink:0;flex-shrink:0;cursor:pointer;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;}
+    .step-btn:active{background:#e2e8f0;}
+    .step-in{-webkit-box-flex:1;-webkit-flex:1;flex:1;height:50px;border:none;text-align:center;font-size:1.25rem;font-weight:700;color:#1e293b;background:#fff;width:0;outline:none;}
+    /* buttons */
+    .btn-main{display:block;width:100%;padding:15px;background:#1e3a5f;color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;text-align:center;cursor:pointer;}
+    .btn-main:active{opacity:.85;}
+    /* toast */
+    #toast{position:fixed;top:62px;left:12px;right:12px;padding:13px 16px;border-radius:12px;font-size:.93rem;font-weight:500;color:#fff;background:#1e293b;z-index:9998;display:none;-webkit-box-shadow:0 4px 18px rgba(0,0,0,.25);box-shadow:0 4px 18px rgba(0,0,0,.25);}
+    #toast.ok{background:#065f46;}
+    #toast.err{background:#7f1d1d;}
+    /* notifications */
+    .notif{background:#fff;border-radius:12px;padding:13px 15px;margin-bottom:8px;cursor:pointer;}
+    .notif.unread{border-left:4px solid #1e3a5f;}
+    .notif-t{font-weight:700;font-size:.93rem;color:#1e293b;}
+    .notif-m{font-size:.82rem;color:#64748b;margin-top:2px;}
+    .notif-d{font-size:.73rem;color:#94a3b8;margin-top:3px;}
+    /* settings */
+    .s-section{background:#fff;border-radius:12px;margin-bottom:14px;overflow:hidden;}
+    .s-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:13px 15px;border-bottom:1px solid #f8fafc;cursor:pointer;}
+    .s-row:last-child{border-bottom:none;}
+    .s-lbl{-webkit-box-flex:1;-webkit-flex:1;flex:1;font-size:.93rem;color:#1e293b;margin-right:12px;}
+    .s-lbl small{display:block;font-size:.75rem;color:#94a3b8;margin-top:1px;}
+    .toggle{position:relative;width:50px;height:28px;-webkit-flex-shrink:0;flex-shrink:0;}
+    .toggle input{position:absolute;opacity:0;width:0;height:0;}
+    .track{position:absolute;top:0;right:0;bottom:0;left:0;background:#cbd5e1;border-radius:14px;cursor:pointer;-webkit-transition:background .2s;transition:background .2s;}
+    .track:before{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;top:3px;left:3px;-webkit-box-shadow:0 1px 3px rgba(0,0,0,.2);box-shadow:0 1px 3px rgba(0,0,0,.2);-webkit-transition:-webkit-transform .2s;transition:transform .2s;}
+    .toggle input:checked + .track{background:#10b981;}
+    .toggle input:checked + .track:before{-webkit-transform:translateX(22px);transform:translateX(22px);}
+    .s-input{width:85px;height:38px;border:1.5px solid #e2e8f0;border-radius:8px;text-align:center;font-size:.97rem;font-weight:600;color:#1e293b;-webkit-appearance:none;outline:none;}
+    .s-lbl2{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:12px 2px 5px;}
+    /* js check */
+    #jscheck{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;padding:12px;text-align:center;font-size:.9rem;z-index:99999;}
+    /* dashboard */
+    .dash-grid{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin:-4px 0 2px;}
+    .dash-stat{-webkit-box-flex:1;-webkit-flex:1 1 110px;flex:1 1 110px;background:#fff;border-radius:12px;padding:13px 10px 11px;margin:4px;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);text-align:center;}
+    .ds-ico{font-size:1.4rem;display:block;margin-bottom:3px;}
+    .ds-val{font-size:1.75rem;font-weight:800;color:#1e3a5f;line-height:1;}
+    .ds-lbl{font-size:.67rem;color:#64748b;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+    .dash-stat.warn .ds-val{color:#d97706;}
+    .dash-stat.bad .ds-val{color:#ef4444;}
+    .dash-sect{background:#fff;border-radius:12px;padding:12px 14px;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:8px;}
+    .dash-sect-ttl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:8px;}
+    .dash-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:6px 0;border-bottom:1px solid #f8fafc;}
+    .dash-row:last-child{border-bottom:none;}
+    .dash-rname{width:110px;font-size:.82rem;color:#1e293b;font-weight:500;-webkit-flex-shrink:0;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dash-track{-webkit-box-flex:1;-webkit-flex:1;flex:1;height:9px;background:#f1f5f9;border-radius:5px;overflow:hidden;margin:0 8px;}
+    .dash-fill{height:100%;border-radius:5px;}
+    .dash-rval{font-size:.82rem;font-weight:700;color:#1e3a5f;width:26px;text-align:right;-webkit-flex-shrink:0;flex-shrink:0;}
+    .op-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f8fafc;}
+    .op-row:last-child{border-bottom:none;}
+    .op-name{font-size:.85rem;color:#1e293b;}
+    .op-cnt{font-size:.97rem;font-weight:700;color:#1e3a5f;background:#eff6ff;border-radius:8px;padding:2px 9px;}
+    /* compact card */
+    /* collapsible group */
+    .sec-toggle{cursor:pointer;-webkit-user-select:none;user-select:none;}
+    .sec-toggle:active{opacity:.65;}
+    .toggle-arr{font-size:.7rem;margin-right:2px;color:#94a3b8;}
+    /* compact inv rows */
+    .inv-wrap{background:#fff;border-radius:12px;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;margin-bottom:8px;}
+    .inv-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:9px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+    .inv-row:last-child{border-bottom:none;}
+    .inv-row:active{background:#f0f7ff;}
+    .inv-rname{-webkit-box-flex:1;-webkit-flex:1;flex:1;font-size:.9rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+    .inv-rqty{font-size:.88rem;font-weight:700;color:#1e3a5f;white-space:nowrap;margin-left:10px;-webkit-flex-shrink:0;flex-shrink:0;}
+    .inv-runit{font-size:.75rem;color:#64748b;font-weight:400;}
+    .inv-rdot{width:8px;height:8px;border-radius:50%;-webkit-flex-shrink:0;flex-shrink:0;margin-left:8px;background:#e2e8f0;}
+    .inv-rdot.warn{background:#f59e0b;}
+    .inv-rdot.bad{background:#ef4444;}
+    /* place chips */
+    .place-chips{display:-webkit-box;display:-webkit-flex;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 10px;-webkit-flex-wrap:nowrap;flex-wrap:nowrap;}
+    .place-chip{-webkit-flex-shrink:0;flex-shrink:0;padding:8px 16px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;font-size:.85rem;font-weight:600;color:#64748b;margin-right:8px;cursor:pointer;white-space:nowrap;}
+    .place-chip.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f;}
+  </style>
+</head>
+<body>
+
+<!-- Если JS не работает — этот блок останется видимым -->
+<div id="jscheck">⚠ JavaScript не загрузился. Обновите страницу.</div>
+
+<div id="loading">
+  <div class="logo">🧊 <span>Holodos</span></div>
+  <div class="spinner"></div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title" id="ttl">Инвентарь</div>
+    <div class="topbar-btns">
+      <button class="topbar-btn" id="btn-reload" onclick="App.reload()">↻</button>
+      <button class="topbar-btn" id="btn-bell" onclick="App.showTab('notifications')">
+        🔔<span class="badge-dot" id="ndot" style="display:none"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="tab-area">
+    <div class="tab-pane active" id="tab-home"><div id="dash-body"></div></div>
+    <div class="tab-pane" id="tab-inventory"><div id="inv-list"></div></div>
+    <div class="tab-pane" id="tab-shopping"><div id="sh-list"></div></div>
+    <div class="tab-pane" id="tab-notifications"><div id="notif-list"></div></div>
+    <div class="tab-pane" id="tab-settings"><div id="set-body"></div></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="home" onclick="App.showTab('home')">
+      <span class="ico">🏠</span>Главная
+    </button>
+    <button class="nav-btn" data-tab="inventory" onclick="App.showTab('inventory')">
+      <span class="ico">📦</span>Инвентарь
+    </button>
+    <button class="nav-btn" data-tab="shopping" onclick="App.showTab('shopping')">
+      <span class="ico">🛒</span>Покупки
+    </button>
+    <button class="nav-btn" data-tab="notifications" onclick="App.showTab('notifications')">
+      <span class="ico">🔔</span>Уведомления
+    </button>
+    <button class="nav-btn" data-tab="settings" onclick="App.showTab('settings')">
+      <span class="ico">⚙</span>Настройки
+    </button>
+  </nav>
+</div>
+
+<button class="fab" id="fab" onclick="App.fabAction()">+</button>
+
+<!-- Sheet -->
+<div class="backdrop" id="backdrop" onclick="App.closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheet-ttl"></div>
+  <div id="sheet-body"></div>
+  <button class="sheet-cancel" onclick="App.closeSheet()">Отмена</button>
+</div>
+
+<!-- Modal: добавить запас -->
+<div class="modal" id="m-stock">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-stock')">←</button>
+    <div class="modal-ttl">Добавить в запасы</div>
+  </div>
+  <div class="modal-scroll">
+    <div class="fg"><label class="flbl">Продукт *</label>
+      <select class="fin" id="as-prod" onchange="App.onProdChange()"><option value="">— выберите —</option></select></div>
+    <div class="fg"><label class="flbl">Количество *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('as-qty',-1)">−</button>
+        <input class="step-in" type="number" id="as-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('as-qty',1)">+</button></div></div>
+    <div class="fg"><label class="flbl">Единица *</label>
+      <select class="fin" id="as-unit"></select></div>
+    <div class="fg"><label class="flbl">Место хранения *</label>
+      <select class="fin" id="as-place"></select></div>
+    <div class="fg"><label class="flbl">Срок годности</label>
+      <input class="fin" type="date" id="as-exp"></div>
+    <div class="fg"><label class="flbl">Комментарий</label>
+      <textarea class="fin" id="as-note" rows="2"></textarea></div>
+  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.addStock()">Добавить</button></div>
+</div>
+
+<!-- Modal: использовать -->
+<div class="modal" id="m-consume">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-consume')">←</button>
+    <div class="modal-ttl">Использовать</div>
+  </div>
+  <div class="modal-scroll">
+    <div style="text-align:center;padding:20px 0 24px;">
+      <div style="font-size:1.3rem;font-weight:700;color:#1e293b;" id="con-name"></div>
+      <div style="font-size:.87rem;color:#64748b;margin-top:5px;" id="con-avail"></div>
+    </div>
+    <div class="fg"><label class="flbl">Сколько потратил? *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('con-qty',-.1)">−</button>
+        <input class="step-in" type="number" id="con-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('con-qty',.1)">+</button></div></div>
+  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.doConsume()">Списать</button></div>
+</div>
+
+<!-- Modal: добавить в список -->
+<div class="modal" id="m-shop">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-shop')">←</button>
+    <div class="modal-ttl">Добавить в список</div>
+  </div>
+  <div class="modal-scroll">
+    <div class="fg"><label class="flbl">Название *</label>
+      <input class="fin" type="text" id="sh-title" placeholder="Что купить"></div>
+    <div class="fg"><label class="flbl">Продукт (необязательно)</label>
+      <select class="fin" id="sh-prod" onchange="App.onShProdChange()"><option value="">— не выбран —</option></select></div>
+    <div class="fg"><label class="flbl">Количество *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('sh-qty',-1)">−</button>
+        <input class="step-in" type="number" id="sh-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('sh-qty',1)">+</button></div></div>
+    <div class="fg"><label class="flbl">Единица</label>
+      <select class="fin" id="sh-unit"><option value="">— не указана —</option></select></div>
+    <div class="fg"><label class="flbl">Магазин</label>
+      <select class="fin" id="sh-store"><option value="">— любой —</option></select></div>
+    <div class="fg"><label class="flbl">Комментарий</label>
+      <textarea class="fin" id="sh-note" rows="2"></textarea></div>
+  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.addShopping()">Добавить в список</button></div>
+</div>
+
+<!-- Modal: куплено -->
+<div class="modal" id="m-buy">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-buy')">←</button>
+    <div class="modal-ttl">Купил!</div>
+  </div>
+  <div class="modal-scroll">
+    <div style="text-align:center;padding:16px 0 24px;">
+      <div style="font-size:2rem;">🛒</div>
+      <div style="font-size:1.2rem;font-weight:700;color:#1e293b;margin-top:8px;" id="buy-name"></div>
+    </div>
+    <div class="fg"><label class="flbl">Купил сколько? *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('buy-qty',-.1)">−</button>
+        <input class="step-in" type="number" id="buy-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('buy-qty',.1)">+</button></div></div>
+    <div class="fg"><label class="flbl">Куда положить? *</label>
+      <select class="fin" id="buy-place"></select></div>
+    <div class="fg"><label class="flbl">Срок годности</label>
+      <input class="fin" type="date" id="buy-exp"></div>
+    <div class="fg"><label class="flbl">Комментарий</label>
+      <textarea class="fin" id="buy-note" rows="2"></textarea></div>
+  </div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.doBuy()">Добавить в инвентарь</button></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ES5, без внешних зависимостей, XHR */
+document.getElementById('jscheck').style.display = 'none'; /* JS работает */
+
+var App = (function() {
+  var API = '/api';
+  var S = {
+    prods:[], units:[], places:[], stores:[],
+    pById:{}, uById:{}, plById:{}, stById:{},
+    inv:[], shop:[], notifs:[], settings:null, report:null, dashPlace:0, invCollapsed:{},
+    tab:'home',
+    stockId:null, shopId:null
+  };
+
+  /* XHR */
+  function xhr(path, method, body) {
+    return new Promise(function(resolve, reject) {
+      var x = new XMLHttpRequest();
+      x.open(method || 'GET', API + '/' + path, true);
+      if (body !== undefined) x.setRequestHeader('Content-Type', 'application/json');
+      x.onreadystatechange = function() {
+        if (x.readyState !== 4) return;
+        if (x.status === 204 || x.status === 205) { resolve(null); return; }
+        var d;
+        try { d = JSON.parse(x.responseText); } catch(e) { d = null; }
+        if (x.status >= 200 && x.status < 300) { resolve(d); }
+        else { reject(new Error((d && d.message) || ('HTTP ' + x.status))); }
+      };
+      x.onerror = function() { reject(new Error('Нет соединения')); };
+      x.send(body !== undefined ? JSON.stringify(body) : null);
+    });
+  }
+  function GET(p)    { return xhr(p); }
+  function POST(p,b) { return xhr(p,'POST',b); }
+  function PUT(p,b)  { return xhr(p,'PUT',b); }
+
+  /* helpers */
+  function byId(arr,id) {
+    for (var i=0;i<arr.length;i++) if (arr[i].id===id) return arr[i];
+    return null;
+  }
+  function idx(arr,key) {
+    var m={};
+    for (var i=0;i<arr.length;i++) m[arr[i][key]]=arr[i];
+    return m;
+  }
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function pname(id) { var p=S.pById[id]; return p?p.name:'—'; }
+  function ushort(id){ var u=S.uById[id]; return u?u.shortName:''; }
+  function plname(id){ var p=S.plById[id]; return p?p.name:'—'; }
+  function plico(id) { var p=S.plById[id]; return (p&&p.icon)?p.icon:'📦'; }
+  function days(s) {
+    if (!s) return null;
+    var a=new Date(); a.setHours(0,0,0,0);
+    var b=new Date(s); b.setHours(0,0,0,0);
+    return Math.round((b-a)/86400000);
+  }
+  function explbl(s) {
+    var d=days(s); if(d===null) return '';
+    if(d<0) return 'Истёк';
+    if(d===0) return 'Сегодня истекает';
+    if(d===1) return 'Завтра истекает';
+    if(d<=7) return 'Через '+d+' дн.';
+    return '';
+  }
+  function expcls(s) {
+    var d=days(s); if(d===null||d>7) return 'ok';
+    if(d<=3) return 'bad'; return 'warn';
+  }
+  function fdate(s) {
+    if(!s) return '';
+    var d=new Date(s);
+    return d.toLocaleDateString('ru-RU');
+  }
+
+  /* init */
+  function init() {
+    try {
+      load().then(function() {
+        document.getElementById('loading').style.display='none';
+      }).catch(function(e) { showErr(e.message); });
+    } catch(e) { showErr(e.message); }
+  }
+
+  function showErr(msg) {
+    document.getElementById('loading').innerHTML =
+      '<div style="color:#fca5a5;font-size:.95rem;max-width:300px">' +
+      'Ошибка подключения:<br><br>'+esc(String(msg))+'<br><br>' +
+      '<button onclick="window.location.reload()" '+
+      'style="background:#38bdf8;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:.95rem;cursor:pointer">'+
+      'Повторить</button></div>';
+  }
+
+  function load() {
+    return loadRef().then(function() {
+      return Promise.all([loadInv(), loadShop(), loadNotifs(), loadSettings(), loadReport()]);
+    }).then(function() {
+      renderDashboard(); renderInv(); renderShop(); renderNotifs(); renderSettings(); fillSelects();
+    });
+  }
+
+  function loadRef() {
+    return Promise.all([
+      GET('products?page=0&size=500'),
+      GET('units'),
+      GET('storage-places'),
+      GET('stores')
+    ]).then(function(r) {
+      S.prods  = r[0].content||[];
+      S.units  = r[1]||[];
+      S.places = r[2]||[];
+      S.stores = r[3]||[];
+      S.pById  = idx(S.prods,'id');
+      S.uById  = idx(S.units,'id');
+      S.plById = idx(S.places,'id');
+      S.stById = idx(S.stores,'id');
+    });
+  }
+  function loadInv()  { return GET('stock-entries?status=AVAILABLE&size=500').then(function(d){ S.inv=d.content||[]; }); }
+  function loadShop() { return GET('shopping-list?status=ACTIVE&size=500').then(function(d){ S.shop=d.content||[]; }); }
+  function loadNotifs() {
+    return GET('notifications').then(function(d) {
+      S.notifs=d||[];
+      var u=0; for(var i=0;i<d.length;i++) if(d[i].status==='NEW'||d[i].status==='DELIVERED') u++;
+      document.getElementById('ndot').style.display=u>0?'block':'none';
+    });
+  }
+  function loadSettings() { return GET('settings').then(function(d){ S.settings=d; }); }
+  function loadReport() { return GET('reports').then(function(d){ S.report=d; }).catch(function(){ S.report={}; }); }
+
+  function reload() {
+    toast('Обновляю...','');
+    Promise.all([loadInv(),loadShop(),loadNotifs(),loadReport()]).then(function(){
+      renderDashboard(); renderInv(); renderShop(); renderNotifs(); toast('Готово','ok');
+    }).catch(function(e){ toast(e.message,'err'); });
+  }
+
+  /* tabs */
+  var TITLES = {home:'Главная',inventory:'Инвентарь',shopping:'Список покупок',notifications:'Уведомления',settings:'Настройки'};
+
+  function showTab(tab) {
+    S.tab = tab;
+    var panes = document.querySelectorAll('.tab-pane');
+    for (var i=0; i<panes.length; i++) {
+      panes[i].style.display = (panes[i].id==='tab-'+tab) ? 'block' : 'none';
+    }
+    var btns = document.querySelectorAll('.nav-btn');
+    for (var j=0; j<btns.length; j++) {
+      btns[j].className = btns[j].getAttribute('data-tab')===tab ? 'nav-btn active' : 'nav-btn';
+    }
+    document.getElementById('ttl').textContent = TITLES[tab]||'';
+    document.getElementById('fab').style.display =
+      (tab==='inventory'||tab==='shopping') ? 'flex' : 'none';
+  }
+
+  function fabAction() {
+    if (S.tab==='inventory')  openModal('m-stock');
+    if (S.tab==='shopping')   openModal('m-shop');
+  }
+
+  /* render inventory */
+  function renderInv() {
+    var el = document.getElementById('inv-list');
+    if (!S.inv.length) {
+      el.innerHTML='<div class="empty"><span class="ico">📦</span>Запасов нет.<br>Нажмите + чтобы добавить</div>';
+      return;
+    }
+    var groups={}, order=[];
+    for (var i=0;i<S.inv.length;i++) {
+      var e=S.inv[i], k=e.storagePlaceId||0;
+      if(!groups[k]){groups[k]=[];order.push(k);}
+      groups[k].push(e);
+    }
+    var h='';
+    for (var g=0;g<order.length;g++) {
+      var k2=order[g], gico=k2>0?plico(k2):'📦', gnm=k2>0?plname(k2):'Без места';
+      var col=!!S.invCollapsed[k2];
+      h+='<div class="sec-label sec-toggle" onclick="App.toggleInvGroup('+k2+')">'+
+        '<span id="inv-arr-'+k2+'" class="toggle-arr">'+(col?'▶':'▼')+'</span> '+gico+' '+esc(gnm)+'</div>';
+      h+='<div id="inv-group-'+k2+'"'+(col?' style="display:none"':'')+'>'+invRows(groups[k2])+'</div>';
+    }
+    el.innerHTML=h;
+  }
+
+  function toggleInvGroup(id) {
+    S.invCollapsed[id] = !S.invCollapsed[id];
+    var wrap = document.getElementById('inv-group-'+id);
+    var arr  = document.getElementById('inv-arr-'+id);
+    if (wrap) wrap.style.display = S.invCollapsed[id] ? 'none' : '';
+    if (arr)  arr.textContent    = S.invCollapsed[id] ? '▶' : '▼';
+  }
+
+  /* render shopping */
+  function renderShop() {
+    var el=document.getElementById('sh-list');
+    if (!S.shop.length) {
+      el.innerHTML='<div class="empty"><span class="ico">🛒</span>Список покупок пуст</div>';
+      return;
+    }
+    var groups={}, order=[];
+    for (var i=0;i<S.shop.length;i++) {
+      var e=S.shop[i], k=e.storeId||0;
+      if(!groups[k]){groups[k]=[];order.push(k);}
+      groups[k].push(e);
+    }
+    var h='';
+    for (var g=0;g<order.length;g++) {
+      var k2=order[g], st=k2>0?S.stById[k2]:null, snm=st?st.name:'Без магазина';
+      h+='<div class="sec-label">🏪 '+esc(snm)+'</div>';
+      var items=groups[k2];
+      for (var j=0;j<items.length;j++) {
+        var it=items[j];
+        var sub=ushort(it.unitId);
+        if(it.comment) sub+=(sub?' · ':'')+it.comment;
+        h+='<div class="card" onclick="App.openShopSheet('+it.id+')">'+
+          '<div class="circle" style="width:26px;height:26px;margin-right:12px;-webkit-flex-shrink:0;flex-shrink:0;border:2px solid #cbd5e1;border-radius:50%;"></div>'+
+          '<div class="card-body"><div class="card-title">'+esc(it.title)+'</div>'+
+          (sub?'<div class="card-sub">'+esc(sub)+'</div>':'')+
+          '</div><div class="card-qty">'+parseFloat(it.quantity)+'<div class="card-unit">'+esc(ushort(it.unitId))+'</div></div></div>';
+      }
+    }
+    el.innerHTML=h;
+  }
+
+  /* render notifications */
+  function renderNotifs() {
+    var el=document.getElementById('notif-list');
+    if(!S.notifs.length){el.innerHTML='<div class="empty"><span class="ico">🔕</span>Уведомлений нет</div>';return;}
+    var h='';
+    for(var i=0;i<S.notifs.length;i++){
+      var n=S.notifs[i], u=(n.status==='NEW'||n.status==='DELIVERED');
+      h+='<div class="notif'+(u?' unread':'')+'" onclick="App.readNotif('+n.id+',this)">'+
+        '<div class="notif-t">'+esc(n.title)+'</div>'+
+        '<div class="notif-m">'+esc(n.message)+'</div>'+
+        '<div class="notif-d">'+fdate(n.createdAt)+'</div></div>';
+    }
+    el.innerHTML=h;
+  }
+
+  function readNotif(id,el){
+    POST('notifications/'+id+'/read',{}).then(function(){
+      el.className='notif'; loadNotifs();
+    }).catch(function(e){toast(e.message,'err');});
+  }
+
+  /* render settings */
+  function renderSettings() {
+    var s=S.settings||{};
+    function tog(id,lbl,sub,chk){
+      return '<div class="s-row"><div class="s-lbl">'+esc(lbl)+(sub?'<small>'+esc(sub)+'</small>':'')+
+        '</div><label class="toggle"><input type="checkbox" id="'+id+'"'+(chk?' checked':'')+'>'+
+        '<div class="track"></div></label></div>';
+    }
+    var h='<div class="s-lbl2">Уведомления</div><div class="s-section">'+
+      tog('s-exp','Истекает срок','Предупреждать заблаговременно',s.notifyExpiring)+
+      tog('s-expd','Просрочено','Когда срок истёк',s.notifyExpired)+
+      tog('s-old','Давно не используется','',s.notifyOldItems)+
+      tog('s-stk','Закончился продукт','',s.notifyOutOfStock)+
+      '</div><div class="s-lbl2">Параметры</div><div class="s-section">'+
+      '<div class="s-row"><div class="s-lbl">Предупреждать за (дней)<small>До истечения срока</small></div>'+
+      '<input class="s-input" type="number" id="s-days" min="1" max="30" value="'+(s.expiryDaysBeforeNotify||3)+'"></div>'+
+      '<div class="s-row"><div class="s-lbl">Частота уведомлений<small>Минут между уведомлениями</small></div>'+
+      '<input class="s-input" type="number" id="s-freq" min="5" max="1440" value="'+(s.maxFrequencyMinutes||60)+'"></div>'+
+      '</div><div class="s-section">'+
+      '<div class="s-row" onclick="window.location.href=\'/admin/index.html\'">'+
+      '<div class="s-lbl">Управление каталогом<small>Продукты, категории, магазины...</small></div><span style="color:#94a3b8">›</span></div>'+
+      '</div><div style="margin-top:8px">'+
+      '<button class="btn-main" onclick="App.saveSettings()">Сохранить</button></div>';
+    document.getElementById('set-body').innerHTML=h;
+  }
+
+  function saveSettings() {
+    function chk(id){var e=document.getElementById(id);return !!(e&&e.checked);}
+    function num(id){var e=document.getElementById(id);return e?parseInt(e.value,10):0;}
+    PUT('settings',{
+      userKey:(S.settings&&S.settings.userKey)||'default',
+      notifyExpiring:chk('s-exp'), notifyExpired:chk('s-expd'),
+      notifyOldItems:chk('s-old'), notifyOutOfStock:chk('s-stk'),
+      expiryDaysBeforeNotify:num('s-days')||3,
+      maxFrequencyMinutes:num('s-freq')||60,
+      quietHoursStart:(S.settings&&S.settings.quietHoursStart)||null,
+      quietHoursEnd:(S.settings&&S.settings.quietHoursEnd)||null
+    }).then(function(d){S.settings=d;toast('Сохранено','ok');})
+    .catch(function(e){toast(e.message,'err');});
+  }
+
+  /* dashboard helpers */
+  function objKeys(obj) {
+    var keys=[]; for (var k in obj) { if (obj.hasOwnProperty(k)) keys.push(k); } return keys;
+  }
+  function maxVal(obj,keys) {
+    var m=0; for (var i=0;i<keys.length;i++) { if ((obj[keys[i]]||0)>m) m=obj[keys[i]]||0; } return m;
+  }
+  var OP_LABELS = {
+    STOCK_ADD:'Добавлено в запасы', STOCK_CONSUME:'Использовано', STOCK_DISCARD:'Выброшено',
+    STOCK_MOVE:'Перемещено', STOCK_ADJUST:'Скорректировано',
+    SHOPPING_CREATE:'Добавлено в список', SHOPPING_UPDATE:'Обновлено в списке',
+    SHOPPING_COMPLETE:'Убрано из списка', SHOPPING_AUTO_ADD:'Авто-добавлено в список',
+    PURCHASE_PROCESS:'Куплено'
+  };
+  function opLabel(k) { return OP_LABELS[k] || k; }
+
+  function renderDashboard() {
+    var el = document.getElementById('dash-body'); if (!el) return;
+    var r = S.report || {};
+    var expSoon = r.expiringSoonCount || 0;
+    var expd    = r.expiredCount || 0;
+    var old     = r.storedTooLongCount || 0;
+    var h = '';
+
+    /* stat cards */
+    h += '<div class="sec-label">Сводка</div>';
+    h += '<div class="dash-grid">';
+    h += '<div class="dash-stat"><span class="ds-ico">📦</span><div class="ds-val">'+S.inv.length+'</div><div class="ds-lbl">В запасах</div></div>';
+    h += '<div class="dash-stat"><span class="ds-ico">🛒</span><div class="ds-val">'+S.shop.length+'</div><div class="ds-lbl">К покупке</div></div>';
+    h += '<div class="dash-stat'+(expSoon>0?' warn':'')+'"><span class="ds-ico">'+(expSoon>0?'⚠':'✅')+'</span><div class="ds-val">'+expSoon+'</div><div class="ds-lbl">Истекает</div></div>';
+    h += '<div class="dash-stat'+(expd>0?' bad':'')+'"><span class="ds-ico">'+(expd>0?'🚨':'✅')+'</span><div class="ds-val">'+expd+'</div><div class="ds-lbl">Просрочено</div></div>';
+    h += '</div>';
+
+    /* storage place chips + items list */
+    if (S.places.length > 0) {
+      h += '<div class="sec-label">Хранилища</div>';
+      h += '<div class="place-chips">';
+      h += '<button class="place-chip'+(S.dashPlace===0?' active':'')+'" data-place="0" onclick="App.switchDashPlace(0)">Все ('+S.inv.length+')</button>';
+      for (var i=0; i<S.places.length; i++) {
+        var pl=S.places[i], cnt=0;
+        for (var ii=0;ii<S.inv.length;ii++) if(S.inv[ii].storagePlaceId===pl.id) cnt++;
+        if (!cnt) continue;
+        h += '<button class="place-chip'+(S.dashPlace===pl.id?' active':'')+'" data-place="'+pl.id+'" onclick="App.switchDashPlace('+pl.id+')">'+(pl.icon?esc(pl.icon)+' ':'')+esc(pl.name)+' ('+cnt+')</button>';
+      }
+      h += '</div>';
+      h += '<div id="dash-place-list"></div>';
+    }
+
+    /* by category */
+    var byCat  = r.inventoryByCategory || {};
+    var catKeys = objKeys(byCat);
+    if (catKeys.length > 0) {
+      h += '<div class="sec-label">По категориям</div><div class="dash-sect">';
+      var mxCat = maxVal(byCat, catKeys);
+      for (var j=0; j<catKeys.length && j<8; j++) {
+        var ck=catKeys[j], cv=byCat[ck], cp=mxCat>0?Math.round(cv/mxCat*100):0;
+        h += '<div class="dash-row"><div class="dash-rname">'+esc(ck)+'</div>'+
+          '<div class="dash-track"><div class="dash-fill" style="width:'+cp+'%;background:#0ea5e9"></div></div>'+
+          '<div class="dash-rval">'+cv+'</div></div>';
+      }
+      h += '</div>';
+    }
+
+    /* shopping by store */
+    var byStore  = r.shoppingByStore || {};
+    var storeKeys = objKeys(byStore);
+    if (storeKeys.length > 1) {
+      h += '<div class="sec-label">Список покупок по магазинам</div><div class="dash-sect">';
+      var mxSt = maxVal(byStore, storeKeys);
+      for (var s=0; s<storeKeys.length; s++) {
+        var sk=storeKeys[s], sv=byStore[sk], sp=mxSt>0?Math.round(sv/mxSt*100):0;
+        h += '<div class="dash-row"><div class="dash-rname">'+esc(sk==='UNASSIGNED'?'Без магазина':sk)+'</div>'+
+          '<div class="dash-track"><div class="dash-fill" style="width:'+sp+'%;background:#10b981"></div></div>'+
+          '<div class="dash-rval">'+sv+'</div></div>';
+      }
+      h += '</div>';
+    }
+
+    /* operation log stats */
+    var byOp  = r.operationLogByEvent || {};
+    var opKeys = objKeys(byOp);
+    if (opKeys.length > 0) {
+      h += '<div class="sec-label">Активность</div><div class="dash-sect">';
+      for (var m=0; m<opKeys.length; m++) {
+        var ok=opKeys[m], ov=byOp[ok];
+        h += '<div class="op-row"><span class="op-name">'+esc(opLabel(ok))+'</span><span class="op-cnt">'+ov+'</span></div>';
+      }
+      h += '</div>';
+    }
+
+    /* storedTooLong warning */
+    if (old > 0) {
+      h += '<div class="dash-sect" style="border-left:4px solid #f59e0b">'+
+        '<div style="font-size:.88rem;color:#92400e">⏳ '+old+' позиц. хранится больше года</div></div>';
+    }
+
+    el.innerHTML = h || '<div class="empty"><span class="ico">📊</span>Данных пока нет</div>';
+    renderDashItems();
+  }
+
+  function renderDashItems() {
+    var el = document.getElementById('dash-place-list'); if (!el) return;
+    var items = [];
+    for (var i=0; i<S.inv.length; i++) {
+      var e=S.inv[i];
+      if (S.dashPlace===0 || e.storagePlaceId===S.dashPlace) items.push(e);
+    }
+    if (!items.length) {
+      el.innerHTML='<div class="empty" style="padding:24px 20px"><span class="ico">📦</span>Нет запасов</div>';
+      return;
+    }
+    var h='';
+    if (S.dashPlace===0) {
+      var groups={}, order=[];
+      for (var g=0; g<items.length; g++) {
+        var gk=items[g].storagePlaceId||0;
+        if(!groups[gk]){groups[gk]=[];order.push(gk);}
+        groups[gk].push(items[g]);
+      }
+      for (var gi=0; gi<order.length; gi++) {
+        var ok=order[gi];
+        h+='<div class="sec-label">'+(ok>0?plico(ok)+' '+esc(plname(ok)):'📦 Без места')+'</div>';
+        h+=invRows(groups[ok]);
+      }
+    } else {
+      h=invRows(items);
+    }
+    el.innerHTML=h;
+  }
+
+  function invRows(items) {
+    var h='<div class="inv-wrap">';
+    for (var i=0; i<items.length; i++) {
+      var it=items[i], cls=expcls(it.expiresAt);
+      h+='<div class="inv-row" onclick="App.openInvSheet('+it.id+')">'+
+        '<div class="inv-rname">'+esc(pname(it.productId))+'</div>'+
+        '<div class="inv-rqty">'+parseFloat(it.quantity)+' <span class="inv-runit">'+esc(ushort(it.unitId))+'</span></div>'+
+        (cls!=='ok'?'<div class="inv-rdot '+cls+'"></div>':'<div class="inv-rdot"></div>')+
+        '</div>';
+    }
+    return h+'</div>';
+  }
+
+  function switchDashPlace(id) {
+    S.dashPlace = id;
+    var chips = document.querySelectorAll('.place-chip');
+    for (var i=0; i<chips.length; i++) {
+      var pv = chips[i].getAttribute('data-place');
+      chips[i].className = (String(id)===pv) ? 'place-chip active' : 'place-chip';
+    }
+    renderDashItems();
+  }
+
+  /* selects */
+  function fillSelects() {
+    fill('as-prod', S.prods, function(p){return p.name;}, '— выберите —');
+    fill('as-unit', S.units, function(u){return u.name+' ('+u.shortName+')';}, null);
+    fill('as-place',S.places,function(p){return p.name;}, null);
+    fill('sh-prod', S.prods, function(p){return p.name;}, '— не выбран —');
+    fill('sh-unit', S.units, function(u){return u.name+' ('+u.shortName+')';}, '— не указана —');
+    fill('sh-store',S.stores,function(s){return s.name;}, '— любой —');
+    fill('buy-place',S.places,function(p){return p.name;}, null);
+  }
+  function fill(id,items,fn,empty){
+    var el=document.getElementById(id); if(!el)return;
+    var h=empty?'<option value="">'+esc(empty)+'</option>':'';
+    for(var i=0;i<items.length;i++) h+='<option value="'+items[i].id+'">'+esc(fn(items[i]))+'</option>';
+    el.innerHTML=h;
+  }
+  function setv(id,val){var e=document.getElementById(id);if(e&&val!=null)e.value=String(val);}
+
+  /* inventory sheet */
+  function openInvSheet(id) {
+    var e=byId(S.inv,id); if(!e)return;
+    S.stockId=id;
+    var lbl=explbl(e.expiresAt);
+    var sub='Доступно: '+parseFloat(e.quantity)+' '+ushort(e.unitId)+(lbl?' · '+lbl:'');
+    document.getElementById('sheet-ttl').innerHTML='<strong>'+esc(pname(e.productId))+'</strong>'+
+      '<br><span class="sheet-sub">'+esc(sub)+'</span>';
+    document.getElementById('sheet-body').innerHTML=
+      '<button class="sheet-btn" onclick="App.startConsume('+id+')"><span class="ico">🥤</span>Использовал</button>'+
+      '<button class="sheet-btn red" onclick="App.doDiscard('+id+')"><span class="ico">🗑</span>Выбросить / Списать</button>';
+    openSheet();
+  }
+
+  function startConsume(id) {
+    closeSheet();
+    var e=byId(S.inv,id); if(!e)return;
+    S.stockId=id;
+    document.getElementById('con-name').textContent=pname(e.productId);
+    document.getElementById('con-avail').textContent='Доступно: '+parseFloat(e.quantity)+' '+ushort(e.unitId);
+    document.getElementById('con-qty').value=parseFloat(e.quantity);
+    openModal('m-consume');
+  }
+  function doConsume() {
+    var qty=parseFloat(document.getElementById('con-qty').value);
+    if(!qty||qty<=0){toast('Укажи количество','err');return;}
+    POST('stock-entries/'+S.stockId+'/consume',{quantity:qty}).then(function(){
+      closeModal('m-consume'); toast('Списано!','ok'); return loadInv();
+    }).then(renderInv).catch(function(e){toast(e.message,'err');});
+  }
+  function doDiscard(id) {
+    closeSheet();
+    if(!confirm('Списать как выброшенное?'))return;
+    POST('stock-entries/'+id+'/discard',{}).then(function(){
+      toast('Списано','ok'); return loadInv();
+    }).then(renderInv).catch(function(e){toast(e.message,'err');});
+  }
+
+  function onProdChange() {
+    var pid=parseInt(document.getElementById('as-prod').value,10); if(!pid)return;
+    var p=S.pById[pid]; if(!p)return;
+    if(p.defaultUnitId)         setv('as-unit',p.defaultUnitId);
+    if(p.defaultStoragePlaceId) setv('as-place',p.defaultStoragePlaceId);
+  }
+  function addStock() {
+    var pid=parseInt(document.getElementById('as-prod').value,10);
+    var qty=parseFloat(document.getElementById('as-qty').value);
+    var uid=parseInt(document.getElementById('as-unit').value,10);
+    var plid=parseInt(document.getElementById('as-place').value,10);
+    var exp=document.getElementById('as-exp').value;
+    var note=document.getElementById('as-note').value.trim();
+    if(!pid){toast('Выберите продукт','err');return;}
+    if(!qty){toast('Укажите количество','err');return;}
+    if(!uid){toast('Выберите единицу','err');return;}
+    if(!plid){toast('Выберите место','err');return;}
+    POST('stock-entries',{productId:pid,quantity:qty,unitId:uid,storagePlaceId:plid,
+      expiresAt:exp?exp+'T00:00:00+00:00':null,comment:note||null}).then(function(){
+      closeModal('m-stock');
+      document.getElementById('as-prod').value='';
+      document.getElementById('as-qty').value='1';
+      document.getElementById('as-exp').value='';
+      document.getElementById('as-note').value='';
+      toast('Добавлено!','ok'); return loadInv();
+    }).then(renderInv).catch(function(e){toast(e.message,'err');});
+  }
+
+  /* shopping sheet */
+  function openShopSheet(id) {
+    var e=byId(S.shop,id); if(!e)return;
+    S.shopId=id;
+    document.getElementById('sheet-ttl').innerHTML='<strong>'+esc(e.title)+'</strong>'+
+      '<br><span class="sheet-sub">'+parseFloat(e.quantity)+' '+esc(ushort(e.unitId))+'</span>';
+    document.getElementById('sheet-body').innerHTML=
+      '<button class="sheet-btn" onclick="App.startBuy('+id+')"><span class="ico">🛍</span>Купил — добавить в запасы</button>'+
+      '<button class="sheet-btn red" onclick="App.removeShop('+id+')"><span class="ico">✕</span>Убрать из списка</button>';
+    openSheet();
+  }
+
+  function startBuy(id) {
+    closeSheet();
+    var e=byId(S.shop,id); if(!e)return;
+    S.shopId=id;
+    document.getElementById('buy-name').textContent=e.title;
+    document.getElementById('buy-qty').value=parseFloat(e.quantity);
+    document.getElementById('buy-exp').value='';
+    document.getElementById('buy-note').value='';
+    if(e.productId){var p=S.pById[e.productId];if(p&&p.defaultStoragePlaceId)setv('buy-place',p.defaultStoragePlaceId);}
+    openModal('m-buy');
+  }
+  function doBuy() {
+    var qty=parseFloat(document.getElementById('buy-qty').value);
+    var plid=parseInt(document.getElementById('buy-place').value,10);
+    var exp=document.getElementById('buy-exp').value;
+    var note=document.getElementById('buy-note').value.trim();
+    if(!qty){toast('Укажите количество','err');return;}
+    if(!plid){toast('Выберите место','err');return;}
+    POST('purchases/process',{shoppingListItemId:S.shopId,actualQuantity:qty,storagePlaceId:plid,
+      expiresAt:exp?exp+'T00:00:00+00:00':null,comment:note||null}).then(function(){
+      closeModal('m-buy'); toast('Добавлено в инвентарь!','ok');
+      return Promise.all([loadInv(),loadShop()]);
+    }).then(function(){renderInv();renderShop();}).catch(function(e){toast(e.message,'err');});
+  }
+  function removeShop(id) {
+    closeSheet();
+    if(!confirm('Убрать из списка?'))return;
+    POST('shopping-list/'+id+'/complete',{}).then(function(){
+      toast('Убрано','ok'); return loadShop();
+    }).then(renderShop).catch(function(e){toast(e.message,'err');});
+  }
+
+  function onShProdChange() {
+    var pid=parseInt(document.getElementById('sh-prod').value,10); if(!pid)return;
+    var p=S.pById[pid]; if(!p)return;
+    var t=document.getElementById('sh-title'); if(!t.value)t.value=p.name;
+    if(p.defaultUnitId)  setv('sh-unit',p.defaultUnitId);
+    if(p.defaultStoreId) setv('sh-store',p.defaultStoreId);
+  }
+  function addShopping() {
+    var title=document.getElementById('sh-title').value.trim();
+    var qty=parseFloat(document.getElementById('sh-qty').value);
+    var pid=document.getElementById('sh-prod').value;
+    var uid=document.getElementById('sh-unit').value;
+    var sid=document.getElementById('sh-store').value;
+    var note=document.getElementById('sh-note').value.trim();
+    if(!title){toast('Укажите название','err');return;}
+    if(!qty){toast('Укажите количество','err');return;}
+    POST('shopping-list',{title:title,quantity:qty,source:'MANUAL',sortOrder:S.shop.length,
+      productId:pid?parseInt(pid,10):null, unitId:uid?parseInt(uid,10):null,
+      storeId:sid?parseInt(sid,10):null, comment:note||null}).then(function(){
+      closeModal('m-shop');
+      document.getElementById('sh-title').value='';
+      document.getElementById('sh-prod').value='';
+      document.getElementById('sh-qty').value='1';
+      document.getElementById('sh-unit').value='';
+      document.getElementById('sh-store').value='';
+      document.getElementById('sh-note').value='';
+      toast('Добавлено!','ok'); return loadShop();
+    }).then(renderShop).catch(function(e){toast(e.message,'err');});
+  }
+
+  /* stepper */
+  function step(id, d) {
+    var e=document.getElementById(id); if(!e)return;
+    e.value=Math.max(0.001, Math.round((parseFloat(e.value||0)+d)*1000)/1000);
+  }
+
+  /* sheet/modal */
+  function openSheet(){
+    document.getElementById('backdrop').className='backdrop open';
+    document.getElementById('sheet').className='sheet open';
+  }
+  function closeSheet(){
+    document.getElementById('backdrop').className='backdrop';
+    document.getElementById('sheet').className='sheet';
+  }
+  function openModal(id){var e=document.getElementById(id);if(e)e.className='modal open';}
+  function closeModal(id){var e=document.getElementById(id);if(e)e.className='modal';}
+
+  /* toast */
+  var _tt=null;
+  function toast(msg,type){
+    var e=document.getElementById('toast');
+    e.textContent=msg; e.className=type||''; e.style.display='block';
+    if(_tt)clearTimeout(_tt);
+    _tt=setTimeout(function(){e.style.display='none';},2500);
+  }
+
+  return {
+    init:init, reload:reload, showTab:showTab, fabAction:fabAction,
+    openInvSheet:openInvSheet, startConsume:startConsume, doConsume:doConsume,
+    doDiscard:doDiscard, onProdChange:onProdChange, addStock:addStock,
+    openShopSheet:openShopSheet, startBuy:startBuy, doBuy:doBuy,
+    removeShop:removeShop, onShProdChange:onShProdChange, addShopping:addShopping,
+    readNotif:readNotif, saveSettings:saveSettings,
+    step:step, closeSheet:closeSheet, openModal:openModal, closeModal:closeModal,
+    renderDashboard:renderDashboard, switchDashPlace:switchDashPlace, toggleInvGroup:toggleInvGroup
+  };
+})();
+
+App.init();
+</script>
+</body>
+</html>
