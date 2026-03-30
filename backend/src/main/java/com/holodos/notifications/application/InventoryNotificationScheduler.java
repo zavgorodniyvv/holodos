@@ -5,6 +5,7 @@ import com.holodos.inventory.infrastructure.StockEntryRepository;
 import java.time.OffsetDateTime;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class InventoryNotificationScheduler {
@@ -16,6 +17,7 @@ public class InventoryNotificationScheduler {
         this.notificationService = notificationService;
     }
 
+    @Transactional(readOnly = true)
     @Scheduled(cron = "0 */30 * * * *")
     public void scanExpiryAndOldItems() {
         OffsetDateTime now = OffsetDateTime.now();
