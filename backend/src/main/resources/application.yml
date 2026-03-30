@@ -38,6 +38,11 @@ holodos:
     max-page-size: 100
   media:
     root-path: ${java.io.tmpdir}/holodos-media
+  integrations:
+    google-tasks:
+      client-id: ${GOOGLE_TASKS_CLIENT_ID:}
+      client-secret: ${GOOGLE_TASKS_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_TASKS_REDIRECT_URI:http://localhost:8080/api/integrations/google-tasks/oauth2/callback}
     # To use MinIO (S3-compatible) instead of filesystem, uncomment:
     # provider: S3
     # s3:

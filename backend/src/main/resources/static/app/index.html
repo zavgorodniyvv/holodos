@@ -115,6 +115,46 @@
     .s-lbl2{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:12px 2px 5px;}
     /* js check */
     #jscheck{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;padding:12px;text-align:center;font-size:.9rem;z-index:99999;}
+    /* dashboard */
+    .dash-grid{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin:-4px 0 2px;}
+    .dash-stat{-webkit-box-flex:1;-webkit-flex:1 1 110px;flex:1 1 110px;background:#fff;border-radius:12px;padding:13px 10px 11px;margin:4px;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);text-align:center;}
+    .ds-ico{font-size:1.4rem;display:block;margin-bottom:3px;}
+    .ds-val{font-size:1.75rem;font-weight:800;color:#1e3a5f;line-height:1;}
+    .ds-lbl{font-size:.67rem;color:#64748b;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+    .dash-stat.warn .ds-val{color:#d97706;}
+    .dash-stat.bad .ds-val{color:#ef4444;}
+    .dash-sect{background:#fff;border-radius:12px;padding:12px 14px;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:8px;}
+    .dash-sect-ttl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:8px;}
+    .dash-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:6px 0;border-bottom:1px solid #f8fafc;}
+    .dash-row:last-child{border-bottom:none;}
+    .dash-rname{width:110px;font-size:.82rem;color:#1e293b;font-weight:500;-webkit-flex-shrink:0;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dash-track{-webkit-box-flex:1;-webkit-flex:1;flex:1;height:9px;background:#f1f5f9;border-radius:5px;overflow:hidden;margin:0 8px;}
+    .dash-fill{height:100%;border-radius:5px;}
+    .dash-rval{font-size:.82rem;font-weight:700;color:#1e3a5f;width:26px;text-align:right;-webkit-flex-shrink:0;flex-shrink:0;}
+    .op-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f8fafc;}
+    .op-row:last-child{border-bottom:none;}
+    .op-name{font-size:.85rem;color:#1e293b;}
+    .op-cnt{font-size:.97rem;font-weight:700;color:#1e3a5f;background:#eff6ff;border-radius:8px;padding:2px 9px;}
+    /* compact card */
+    /* collapsible group */
+    .sec-toggle{cursor:pointer;-webkit-user-select:none;user-select:none;}
+    .sec-toggle:active{opacity:.65;}
+    .toggle-arr{font-size:.7rem;margin-right:2px;color:#94a3b8;}
+    /* compact inv rows */
+    .inv-wrap{background:#fff;border-radius:12px;-webkit-box-shadow:0 1px 4px rgba(0,0,0,.07);box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;margin-bottom:8px;}
+    .inv-row{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;padding:9px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+    .inv-row:last-child{border-bottom:none;}
+    .inv-row:active{background:#f0f7ff;}
+    .inv-rname{-webkit-box-flex:1;-webkit-flex:1;flex:1;font-size:.9rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+    .inv-rqty{font-size:.88rem;font-weight:700;color:#1e3a5f;white-space:nowrap;margin-left:10px;-webkit-flex-shrink:0;flex-shrink:0;}
+    .inv-runit{font-size:.75rem;color:#64748b;font-weight:400;}
+    .inv-rdot{width:8px;height:8px;border-radius:50%;-webkit-flex-shrink:0;flex-shrink:0;margin-left:8px;background:#e2e8f0;}
+    .inv-rdot.warn{background:#f59e0b;}
+    .inv-rdot.bad{background:#ef4444;}
+    /* place chips */
+    .place-chips{display:-webkit-box;display:-webkit-flex;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 10px;-webkit-flex-wrap:nowrap;flex-wrap:nowrap;}
+    .place-chip{-webkit-flex-shrink:0;flex-shrink:0;padding:8px 16px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;font-size:.85rem;font-weight:600;color:#64748b;margin-right:8px;cursor:pointer;white-space:nowrap;}
+    .place-chip.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f;}
   </style>
 </head>
 <body>
@@ -139,14 +179,18 @@
   </div>
 
   <div class="tab-area">
-    <div class="tab-pane active" id="tab-inventory"><div id="inv-list"></div></div>
+    <div class="tab-pane active" id="tab-home"><div id="dash-body"></div></div>
+    <div class="tab-pane" id="tab-inventory"><div id="inv-list"></div></div>
     <div class="tab-pane" id="tab-shopping"><div id="sh-list"></div></div>
     <div class="tab-pane" id="tab-notifications"><div id="notif-list"></div></div>
     <div class="tab-pane" id="tab-settings"><div id="set-body"></div></div>
   </div>
 
   <nav class="bottom-nav">
-    <button class="nav-btn active" data-tab="inventory" onclick="App.showTab('inventory')">
+    <button class="nav-btn active" data-tab="home" onclick="App.showTab('home')">
+      <span class="ico">🏠</span>Главная
+    </button>
+    <button class="nav-btn" data-tab="inventory" onclick="App.showTab('inventory')">
       <span class="ico">📦</span>Инвентарь
     </button>
     <button class="nav-btn" data-tab="shopping" onclick="App.showTab('shopping')">
@@ -277,8 +321,8 @@ var App = (function() {
   var S = {
     prods:[], units:[], places:[], stores:[],
     pById:{}, uById:{}, plById:{}, stById:{},
-    inv:[], shop:[], notifs:[], settings:null,
-    tab:'inventory',
+    inv:[], shop:[], notifs:[], settings:null, report:null, dashPlace:0, invCollapsed:{},
+    tab:'home',
     stockId:null, shopId:null
   };
 
@@ -365,9 +409,9 @@ var App = (function() {
 
   function load() {
     return loadRef().then(function() {
-      return Promise.all([loadInv(), loadShop(), loadNotifs(), loadSettings()]);
+      return Promise.all([loadInv(), loadShop(), loadNotifs(), loadSettings(), loadReport()]);
     }).then(function() {
-      renderInv(); renderShop(); renderNotifs(); renderSettings(); fillSelects();
+      renderDashboard(); renderInv(); renderShop(); renderNotifs(); renderSettings(); fillSelects();
     });
   }
 
@@ -398,16 +442,17 @@ var App = (function() {
     });
   }
   function loadSettings() { return GET('settings').then(function(d){ S.settings=d; }); }
+  function loadReport() { return GET('reports').then(function(d){ S.report=d; }).catch(function(){ S.report={}; }); }
 
   function reload() {
     toast('Обновляю...','');
-    Promise.all([loadInv(),loadShop(),loadNotifs()]).then(function(){
-      renderInv(); renderShop(); renderNotifs(); toast('Готово','ok');
+    Promise.all([loadInv(),loadShop(),loadNotifs(),loadReport()]).then(function(){
+      renderDashboard(); renderInv(); renderShop(); renderNotifs(); toast('Готово','ok');
     }).catch(function(e){ toast(e.message,'err'); });
   }
 
   /* tabs */
-  var TITLES = {inventory:'Инвентарь',shopping:'Список покупок',notifications:'Уведомления',settings:'Настройки'};
+  var TITLES = {home:'Главная',inventory:'Инвентарь',shopping:'Список покупок',notifications:'Уведомления',settings:'Настройки'};
 
   function showTab(tab) {
     S.tab = tab;
@@ -445,20 +490,20 @@ var App = (function() {
     var h='';
     for (var g=0;g<order.length;g++) {
       var k2=order[g], gico=k2>0?plico(k2):'📦', gnm=k2>0?plname(k2):'Без места';
-      h+='<div class="sec-label">'+gico+' '+esc(gnm)+'</div>';
-      var items=groups[k2];
-      for (var j=0;j<items.length;j++) {
-        var it=items[j], cls=expcls(it.expiresAt), lbl=explbl(it.expiresAt);
-        var sub=lbl?('<span style="color:'+(cls==='bad'?'#ef4444':'#f59e0b')+'">'+esc(lbl)+'</span>'):'';
-        if(it.comment) sub+=(sub?' · ':'')+esc(it.comment);
-        h+='<div class="card '+cls+'" onclick="App.openInvSheet('+it.id+')">'+
-          '<div class="card-ico">'+gico+'</div>'+
-          '<div class="card-body"><div class="card-title">'+esc(pname(it.productId))+'</div>'+
-          (sub?'<div class="card-sub">'+sub+'</div>':'')+
-          '</div><div class="card-qty">'+parseFloat(it.quantity)+'<div class="card-unit">'+esc(ushort(it.unitId))+'</div></div></div>';
-      }
+      var col=!!S.invCollapsed[k2];
+      h+='<div class="sec-label sec-toggle" onclick="App.toggleInvGroup('+k2+')">'+
+        '<span id="inv-arr-'+k2+'" class="toggle-arr">'+(col?'▶':'▼')+'</span> '+gico+' '+esc(gnm)+'</div>';
+      h+='<div id="inv-group-'+k2+'"'+(col?' style="display:none"':'')+'>'+invRows(groups[k2])+'</div>';
     }
     el.innerHTML=h;
+  }
+
+  function toggleInvGroup(id) {
+    S.invCollapsed[id] = !S.invCollapsed[id];
+    var wrap = document.getElementById('inv-group-'+id);
+    var arr  = document.getElementById('inv-arr-'+id);
+    if (wrap) wrap.style.display = S.invCollapsed[id] ? 'none' : '';
+    if (arr)  arr.textContent    = S.invCollapsed[id] ? '▶' : '▼';
   }
 
   /* render shopping */
@@ -553,6 +598,159 @@ var App = (function() {
       quietHoursEnd:(S.settings&&S.settings.quietHoursEnd)||null
     }).then(function(d){S.settings=d;toast('Сохранено','ok');})
     .catch(function(e){toast(e.message,'err');});
+  }
+
+  /* dashboard helpers */
+  function objKeys(obj) {
+    var keys=[]; for (var k in obj) { if (obj.hasOwnProperty(k)) keys.push(k); } return keys;
+  }
+  function maxVal(obj,keys) {
+    var m=0; for (var i=0;i<keys.length;i++) { if ((obj[keys[i]]||0)>m) m=obj[keys[i]]||0; } return m;
+  }
+  var OP_LABELS = {
+    STOCK_ADD:'Добавлено в запасы', STOCK_CONSUME:'Использовано', STOCK_DISCARD:'Выброшено',
+    STOCK_MOVE:'Перемещено', STOCK_ADJUST:'Скорректировано',
+    SHOPPING_CREATE:'Добавлено в список', SHOPPING_UPDATE:'Обновлено в списке',
+    SHOPPING_COMPLETE:'Убрано из списка', SHOPPING_AUTO_ADD:'Авто-добавлено в список',
+    PURCHASE_PROCESS:'Куплено'
+  };
+  function opLabel(k) { return OP_LABELS[k] || k; }
+
+  function renderDashboard() {
+    var el = document.getElementById('dash-body'); if (!el) return;
+    var r = S.report || {};
+    var expSoon = r.expiringSoonCount || 0;
+    var expd    = r.expiredCount || 0;
+    var old     = r.storedTooLongCount || 0;
+    var h = '';
+
+    /* stat cards */
+    h += '<div class="sec-label">Сводка</div>';
+    h += '<div class="dash-grid">';
+    h += '<div class="dash-stat"><span class="ds-ico">📦</span><div class="ds-val">'+S.inv.length+'</div><div class="ds-lbl">В запасах</div></div>';
+    h += '<div class="dash-stat"><span class="ds-ico">🛒</span><div class="ds-val">'+S.shop.length+'</div><div class="ds-lbl">К покупке</div></div>';
+    h += '<div class="dash-stat'+(expSoon>0?' warn':'')+'"><span class="ds-ico">'+(expSoon>0?'⚠':'✅')+'</span><div class="ds-val">'+expSoon+'</div><div class="ds-lbl">Истекает</div></div>';
+    h += '<div class="dash-stat'+(expd>0?' bad':'')+'"><span class="ds-ico">'+(expd>0?'🚨':'✅')+'</span><div class="ds-val">'+expd+'</div><div class="ds-lbl">Просрочено</div></div>';
+    h += '</div>';
+
+    /* storage place chips + items list */
+    if (S.places.length > 0) {
+      h += '<div class="sec-label">Хранилища</div>';
+      h += '<div class="place-chips">';
+      h += '<button class="place-chip'+(S.dashPlace===0?' active':'')+'" data-place="0" onclick="App.switchDashPlace(0)">Все ('+S.inv.length+')</button>';
+      for (var i=0; i<S.places.length; i++) {
+        var pl=S.places[i], cnt=0;
+        for (var ii=0;ii<S.inv.length;ii++) if(S.inv[ii].storagePlaceId===pl.id) cnt++;
+        if (!cnt) continue;
+        h += '<button class="place-chip'+(S.dashPlace===pl.id?' active':'')+'" data-place="'+pl.id+'" onclick="App.switchDashPlace('+pl.id+')">'+(pl.icon?esc(pl.icon)+' ':'')+esc(pl.name)+' ('+cnt+')</button>';
+      }
+      h += '</div>';
+      h += '<div id="dash-place-list"></div>';
+    }
+
+    /* by category */
+    var byCat  = r.inventoryByCategory || {};
+    var catKeys = objKeys(byCat);
+    if (catKeys.length > 0) {
+      h += '<div class="sec-label">По категориям</div><div class="dash-sect">';
+      var mxCat = maxVal(byCat, catKeys);
+      for (var j=0; j<catKeys.length && j<8; j++) {
+        var ck=catKeys[j], cv=byCat[ck], cp=mxCat>0?Math.round(cv/mxCat*100):0;
+        h += '<div class="dash-row"><div class="dash-rname">'+esc(ck)+'</div>'+
+          '<div class="dash-track"><div class="dash-fill" style="width:'+cp+'%;background:#0ea5e9"></div></div>'+
+          '<div class="dash-rval">'+cv+'</div></div>';
+      }
+      h += '</div>';
+    }
+
+    /* shopping by store */
+    var byStore  = r.shoppingByStore || {};
+    var storeKeys = objKeys(byStore);
+    if (storeKeys.length > 1) {
+      h += '<div class="sec-label">Список покупок по магазинам</div><div class="dash-sect">';
+      var mxSt = maxVal(byStore, storeKeys);
+      for (var s=0; s<storeKeys.length; s++) {
+        var sk=storeKeys[s], sv=byStore[sk], sp=mxSt>0?Math.round(sv/mxSt*100):0;
+        h += '<div class="dash-row"><div class="dash-rname">'+esc(sk==='UNASSIGNED'?'Без магазина':sk)+'</div>'+
+          '<div class="dash-track"><div class="dash-fill" style="width:'+sp+'%;background:#10b981"></div></div>'+
+          '<div class="dash-rval">'+sv+'</div></div>';
+      }
+      h += '</div>';
+    }
+
+    /* operation log stats */
+    var byOp  = r.operationLogByEvent || {};
+    var opKeys = objKeys(byOp);
+    if (opKeys.length > 0) {
+      h += '<div class="sec-label">Активность</div><div class="dash-sect">';
+      for (var m=0; m<opKeys.length; m++) {
+        var ok=opKeys[m], ov=byOp[ok];
+        h += '<div class="op-row"><span class="op-name">'+esc(opLabel(ok))+'</span><span class="op-cnt">'+ov+'</span></div>';
+      }
+      h += '</div>';
+    }
+
+    /* storedTooLong warning */
+    if (old > 0) {
+      h += '<div class="dash-sect" style="border-left:4px solid #f59e0b">'+
+        '<div style="font-size:.88rem;color:#92400e">⏳ '+old+' позиц. хранится больше года</div></div>';
+    }
+
+    el.innerHTML = h || '<div class="empty"><span class="ico">📊</span>Данных пока нет</div>';
+    renderDashItems();
+  }
+
+  function renderDashItems() {
+    var el = document.getElementById('dash-place-list'); if (!el) return;
+    var items = [];
+    for (var i=0; i<S.inv.length; i++) {
+      var e=S.inv[i];
+      if (S.dashPlace===0 || e.storagePlaceId===S.dashPlace) items.push(e);
+    }
+    if (!items.length) {
+      el.innerHTML='<div class="empty" style="padding:24px 20px"><span class="ico">📦</span>Нет запасов</div>';
+      return;
+    }
+    var h='';
+    if (S.dashPlace===0) {
+      var groups={}, order=[];
+      for (var g=0; g<items.length; g++) {
+        var gk=items[g].storagePlaceId||0;
+        if(!groups[gk]){groups[gk]=[];order.push(gk);}
+        groups[gk].push(items[g]);
+      }
+      for (var gi=0; gi<order.length; gi++) {
+        var ok=order[gi];
+        h+='<div class="sec-label">'+(ok>0?plico(ok)+' '+esc(plname(ok)):'📦 Без места')+'</div>';
+        h+=invRows(groups[ok]);
+      }
+    } else {
+      h=invRows(items);
+    }
+    el.innerHTML=h;
+  }
+
+  function invRows(items) {
+    var h='<div class="inv-wrap">';
+    for (var i=0; i<items.length; i++) {
+      var it=items[i], cls=expcls(it.expiresAt);
+      h+='<div class="inv-row" onclick="App.openInvSheet('+it.id+')">'+
+        '<div class="inv-rname">'+esc(pname(it.productId))+'</div>'+
+        '<div class="inv-rqty">'+parseFloat(it.quantity)+' <span class="inv-runit">'+esc(ushort(it.unitId))+'</span></div>'+
+        (cls!=='ok'?'<div class="inv-rdot '+cls+'"></div>':'<div class="inv-rdot"></div>')+
+        '</div>';
+    }
+    return h+'</div>';
+  }
+
+  function switchDashPlace(id) {
+    S.dashPlace = id;
+    var chips = document.querySelectorAll('.place-chip');
+    for (var i=0; i<chips.length; i++) {
+      var pv = chips[i].getAttribute('data-place');
+      chips[i].className = (String(id)===pv) ? 'place-chip active' : 'place-chip';
+    }
+    renderDashItems();
   }
 
   /* selects */
@@ -747,7 +945,8 @@ var App = (function() {
     openShopSheet:openShopSheet, startBuy:startBuy, doBuy:doBuy,
     removeShop:removeShop, onShProdChange:onShProdChange, addShopping:addShopping,
     readNotif:readNotif, saveSettings:saveSettings,
-    step:step, closeSheet:closeSheet, openModal:openModal, closeModal:closeModal
+    step:step, closeSheet:closeSheet, openModal:openModal, closeModal:closeModal,
+    renderDashboard:renderDashboard, switchDashPlace:switchDashPlace, toggleInvGroup:toggleInvGroup
   };
 })();
 

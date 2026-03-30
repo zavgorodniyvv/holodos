@@ -1,177 +1,128 @@
 # Holodos
 
-Production-oriented MVP platform for mobile-first home inventory and shopping management.
+Mobile-first home inventory and shopping management platform.
 
-## Current status
-This repository now includes **Phase 1 foundation**:
-- backend bootstrap (Spring Boot modular monolith skeleton)
-- initial Flyway migration for core catalog tables
-- core catalog CRUD API for storage places, units, categories, stores, products
-- global API error format + correlation-id support
-- baseline security/cache/scheduling configuration
-- unit tests for critical catalog business logic path (product creation dependencies)
+- `backend/` — Java 25 + Spring Boot 4, modular monolith REST API
+- `mobile/` — Flutter (Dart) offline-first client with SQLite + sync
+- `docs/` — Architecture and design documentation
 
-## Tech stack
-- Java 25
-- Spring Boot 4
-- PostgreSQL + Flyway
-- Spring Data JPA, Validation, Security, OAuth2 Client
-- Spring Cache with Caffeine
-- OpenAPI/Swagger
-- JUnit5 + Mockito + Testcontainers (dependencies enabled)
+## Quick Start
 
-## Architecture documents
-- Detailed architecture and phased plan: `docs/architecture.md`
-
-## Run locally
-1. Start PostgreSQL:
-   ```bash
-   docker compose up -d
-   ```
-2. Run the application:
-   ```bash
-   mvn spring-boot:run
-   ```
-3. Open Swagger UI:
-   - `http://localhost:8080/swagger-ui.html`
-
-## Test
 ```bash
-mvn test
+# 1. Start PostgreSQL
+docker compose up -d
+
+# 2. Start backend (port 8080)
+cd backend && mvn spring-boot:run
+
+# 3. Run mobile app
+cd mobile && flutter run
 ```
 
-## Implemented endpoints (initial)
-- `POST/GET /api/storage-places`
-- `POST/GET /api/units`
-- `POST/GET /api/categories`
-- `POST/GET /api/stores`
-- `POST/GET /api/products` (`query` search parameter)
-- `GET/POST /api/stock-entries` with `/consume`, `/discard`, `/move`, `/adjust`
-- `GET /api/movements`
+Swagger UI: http://localhost:8080/swagger-ui.html
 
-## Next planned steps
-- implement inventory module (`stock_entries`, movements, adjustments)
-- implement shopping list + purchase processing + auto-replenishment dedup
-- add operation log writes on domain events
-- scaffold Flutter app with offline SQLite and sync queue
-- build Google Keep adapter contracts + stub sync orchestrator
-Production-friendly MVP baseline for a mobile-first home inventory + shopping management system.
+---
 
-## Implemented in this increment
-- Architecture and domain design document (`docs/architecture.md`)
-- Spring Boot backend bootstrap (`backend/`)
-- Flyway migrations for catalog dictionaries/products + operation log
-- Core catalog module CRUD APIs for:
-  - Storage places (flat)
-  - Units
-  - Categories
-  - Stores
-  - Products
+## Google Tasks Integration
 
-- Inventory module baseline (`/api/stock-entries`)
-- Shopping list module baseline (`/api/shopping-list`)
-- Purchase processing baseline (`/api/purchases/process`)
-- Auto-replenishment deduplication that merges repeat requests into the existing active shopping entry
-- Movement history endpoint (`/api/movements`)
-- Inventory adjustment endpoint to log manual corrections + movement splitting to avoid negative stock
-- Operation log hooks for inventory/shopping/purchase actions via domain events
-- Filtering + pagination on inventory/shopping/movements list APIs
-- Google Keep integration boundary with configurable HTTP adapter (stub by default, HTTP client when enabled)
-- Notification/settings APIs + scheduled expiry/old-item checks
-- Reports API (`/api/reports`) + CSV export endpoint (`/api/reports/export`)
-- JSON backup/export and restore API (`/api/export/json`, `/api/export/restore`)
-- Global validation error format + correlation ID support
-- Basic unit test for product creation business rule
+Sync the shopping list to Google Tasks so it's visible on any device via the Google Tasks app.
 
-## Tech stack
-- Java 25
-- Spring Boot 4 (milestone)
-- PostgreSQL + Flyway
-- Spring Data JPA
-- Spring Validation
-- Spring Security
-- OAuth2 Client (enabled in baseline config)
-- Spring Cache + Caffeine
-- OpenAPI (springdoc)
-- JUnit 5 + Mockito + Testcontainers dependencies
+### 1. Create OAuth2 credentials in Google Console
 
-## Run backend
+1. Open [console.cloud.google.com](https://console.cloud.google.com) and create or select a project
+2. **APIs & Services → Enable APIs** → enable **Google Tasks API**
+3. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
+   - Application type: **Web application**
+   - Authorized redirect URIs: `http://localhost:8080/api/integrations/google-tasks/oauth2/callback`
+4. Copy the **Client ID** and **Client Secret**
+
+### 2. Add yourself as a test user
+
+Until the app passes Google verification (not needed for personal use), only explicitly added accounts can authorize:
+
+1. **APIs & Services → OAuth consent screen → Test users → Add users**
+2. Add the Gmail address(es) you want to use
+
+### 3. Configure the backend
+
+Set environment variables before starting:
+
 ```bash
-cd backend
-mvn spring-boot:run
+export GOOGLE_TASKS_CLIENT_ID=your-client-id.apps.googleusercontent.com
+export GOOGLE_TASKS_CLIENT_SECRET=your-client-secret
 ```
 
-Default DB connection:
-- url: `jdbc:postgresql://localhost:5432/holodos`
-- username: `holodos`
-- password: `holodos`
-
-Swagger UI:
-- `http://localhost:8080/swagger-ui.html`
-
-## Useful API examples
-```bash
-curl -X POST http://localhost:8080/api/storage-places \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Bathroom","description":"Bath area","icon":"bath","color":"#22A","sortOrder":40,"active":true}'
-
-curl "http://localhost:8080/api/products?search=milk&page=0&size=20"
-
-curl -X POST http://localhost:8080/api/integrations/google-keep/bind \
-  -H 'Content-Type: application/json' \
-  -d '{"userKey":"user-1","remoteNoteId":"note-123"}'
-
-curl -X POST http://localhost:8080/api/integrations/google-keep/sync \
-  -H 'Content-Type: application/json' \
-  -d '{"userKey":"user-1"}'
-```
-
-### Google Keep integration configuration
-Enable the HTTP adapter instead of the stub by configuring the integration section:
+Or add directly to `backend/src/main/resources/application.yml`:
 
 ```yaml
 holodos:
   integrations:
-    google-keep:
-      enabled: true
-      base-url: https://keep.example.com
-      api-key: ${GOOGLE_KEEP_API_TOKEN}
-      timeout: 5s
+    google-tasks:
+      client-id: "your-client-id"
+      client-secret: "your-client-secret"
 ```
 
-With `enabled=false` (default) the local stub client remains active so development doesn’t require external services.
+### 4. Authorize
 
-## Test
+With the backend running, get the authorization URL:
+
+```bash
+curl "http://localhost:8080/api/integrations/google-tasks/auth-url?userKey=slava"
+# → {"authUrl": "https://accounts.google.com/o/oauth2/v2/auth?..."}
+```
+
+Open the returned `authUrl` in a browser, sign in with your Google account, and allow access.
+The browser redirects back automatically — authorization is complete.
+
+### 5. Multiple devices / accounts
+
+Each person authorizes separately with their own `userKey` and Google account:
+
+```bash
+curl "http://localhost:8080/api/integrations/google-tasks/auth-url?userKey=slava"
+curl "http://localhost:8080/api/integrations/google-tasks/auth-url?userKey=anna"
+```
+
+Everyone sees the same shopping list ("Holodos Shopping") in their own Google Tasks app.
+
+### 6. Sync
+
+Sync runs automatically every 5 minutes for all authorized users.
+
+To trigger manually:
+
+```bash
+curl -X POST http://localhost:8080/api/integrations/google-tasks/sync \
+  -H "Content-Type: application/json" \
+  -d '{"userKey": "slava"}'
+```
+
+To check binding status:
+
+```bash
+curl http://localhost:8080/api/integrations/google-tasks/bindings
+```
+
+---
+
+## Backend Commands
+
 ```bash
 cd backend
-mvn test
+
+mvn clean install                             # Full build
+mvn test                                      # All tests
+mvn test -Dtest=ProductServiceTest            # Single test class
+mvn spring-boot:run                           # Start server
 ```
 
-## Mobile app (Flutter)
+## Mobile Commands
+
 ```bash
 cd mobile
-flutter pub get
-flutter run
-```
-Подробности и структура описаны в `mobile/README.md`.
 
-## Next steps
-- Real Google Keep adapter behind existing integration interface
-- Enhanced sync retry/diagnostics + Keep inbound processing
-- CSV/JSON import coverage extension (media, stock history, notifications)
-- JSON export + backup/restore endpoints
-- Real Google Keep adapter behind existing integration interface
-- Enhanced sync retry/diagnostics + Keep inbound processing
-- Operation log writing from services
-- Filtering/sorting/pagination for inventory, shopping and movement views
-- Notifications + reports modules
-- Notifications + reports modules
-- CSV/JSON import-export + backup/restore
-- Google Keep integration adapter + sync state/retry
-- Reports module + CSV/JSON exports
-- Real Google Keep adapter behind existing integration interface
-- Enhanced sync retry/diagnostics + Keep inbound processing
-- Inventory / stock entries module
-- Shopping list + purchase processing
-- Operation log writing from services
-- Flutter mobile scaffold + SQLite sync queue
+flutter pub get    # Install dependencies
+flutter run        # Run app
+flutter test       # Run tests
+flutter analyze    # Lint
+```

@@ -1,7 +1,6 @@
 package com.holodos.integrations.googlekeep.infrastructure;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.holodos.integrations.googlekeep.application.GoogleKeepClient;
 import java.time.Duration;
@@ -58,5 +57,49 @@ class HttpGoogleKeepClientTest {
         assertEquals(1, state.items().size());
         assertEquals("Milk", state.items().get(0).text());
         server.verify();
+    }
+
+    @Test
+    void pushChecklist_returnsFailureOnHttpError() {
+        server.expect(MockRestRequestMatchers.requestTo("http://example.com/notes/note-1/checklist:sync"))
+            .andExpect(MockRestRequestMatchers.method(HttpMethod.POST))
+            .andRespond(MockRestResponseCreators.withServerError());
+
+        GoogleKeepClient.KeepSyncResult result = client.pushChecklist("note-1", List.of(), "etag-old");
+
+        assertFalse(result.success());
+        assertEquals("etag-old", result.newEtag());
+        server.verify();
+    }
+
+    @Test
+    void fetchChecklist_throwsIllegalStateOnHttpError() {
+        server.expect(MockRestRequestMatchers.requestTo("http://example.com/notes/note-1/checklist"))
+            .andExpect(MockRestRequestMatchers.method(HttpMethod.GET))
+            .andRespond(MockRestResponseCreators.withServerError());
+
+        assertThrows(IllegalStateException.class, () -> client.fetchChecklist("note-1"));
+        server.verify();
+    }
+
+    @Test
+    void fetchChecklist_returnsEmptyListWhenItemsIsNull() {
+        server.expect(MockRestRequestMatchers.requestTo("http://example.com/notes/note-1/checklist"))
+            .andExpect(MockRestRequestMatchers.method(HttpMethod.GET))
+            .andRespond(MockRestResponseCreators.withSuccess("{\"etag\":\"e1\",\"items\":null}", MediaType.APPLICATION_JSON));
+
+        GoogleKeepClient.KeepRemoteState state = client.fetchChecklist("note-1");
+
+        assertEquals("e1", state.etag());
+        assertTrue(state.items().isEmpty());
+        server.verify();
+    }
+
+    @Test
+    void constructor_throwsWhenBaseUrlIsEmpty() {
+        RestTemplate rt = new RestTemplate(new SimpleClientHttpRequestFactory());
+        GoogleKeepProperties emptyProps = new GoogleKeepProperties(true, "", "token", Duration.ofSeconds(5));
+
+        assertThrows(IllegalArgumentException.class, () -> new HttpGoogleKeepClient(rt, emptyProps));
     }
 }
