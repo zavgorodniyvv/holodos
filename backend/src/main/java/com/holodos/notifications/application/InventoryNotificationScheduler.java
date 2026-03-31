@@ -17,7 +17,7 @@ public class InventoryNotificationScheduler {
         this.notificationService = notificationService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Scheduled(cron = "0 */30 * * * *")
     public void scanExpiryAndOldItems() {
         OffsetDateTime now = OffsetDateTime.now();
