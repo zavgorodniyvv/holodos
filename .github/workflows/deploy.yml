@@ -17,6 +17,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 2222
           script: |
+            export PATH=$PATH:/snap/bin
             cd /home/slavco/holodos
             git pull origin main
             docker compose up -d --build
