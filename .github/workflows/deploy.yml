@@ -19,5 +19,6 @@ jobs:
           script: |
             export PATH=$PATH:/snap/bin
             cd /home/slavco/holodos
-            git pull origin main
-            docker compose up -d --build
+            git pull https://${{ secrets.GH_PAT }}@github.com/zavgorodniyvv/holodos.git
+            docker compose build --no-cache
+            docker compose up -d
