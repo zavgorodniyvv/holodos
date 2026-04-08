@@ -41,6 +41,10 @@ springdoc:
     path: /swagger-ui.html
 
 holodos:
+  security:
+    allowed-emails:
+      - zavgorodniy@gmail.com
+      - podshybyakina@gmail.com
   api:
     default-page-size: 20
     max-page-size: 100
