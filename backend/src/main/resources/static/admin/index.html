@@ -2,134 +2,200 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Holodos Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Holodos — Каталог</title>
+    <!-- БЕЗ ВНЕШНИХ ЗАВИСИМОСТЕЙ — iOS 9+ (iPad 3). Стиль как в /app/index.html -->
+    <!-- Совместимость с Safari 9: без CSS grid, flex gap, CSS-переменных; flex с префиксом -webkit-;
+         на <button> не ставим display:flex (не работает в Safari < 10.1) — раскладка во внутреннем <span class="bi">;
+         иконки — SVG <use xlink:href> -->
     <style>
-        *, *:before, *:after { box-sizing: border-box; }
-        html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, Helvetica, sans-serif; font-size: 14px; background: #f8fafc; }
-        body { display: -webkit-flex; display: flex; overflow: hidden; }
+        *,*:before,*:after{-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
+        html,body{height:100%;overflow:hidden;margin:0;padding:0;background:#f2f4f7;color:#101828;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;font-size:16px;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;}
+        button,input,select,textarea{font-family:inherit;margin:0;}
+        .i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;-webkit-flex-shrink:0;flex-shrink:0;}
+        .bi{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;width:100%;height:100%;}
+        .center{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;}
+        .tone-blue{background:#e8f0fe;color:#1f6feb;}
+        .tone-gray{background:#f2f4f7;color:#475467;}
 
-        /* Sidebar */
-        .sidebar { width: 220px; -webkit-flex-shrink: 0; flex-shrink: 0; background: #1e293b; color: #cbd5e1; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
-        .sidebar-brand { padding: 16px; font-size: 15px; font-weight: 700; color: #f1f5f9; border-bottom: 1px solid #334155; }
-        .sidebar-brand span { color: #38bdf8; }
-        .sidebar nav { margin-top: 8px; }
-        .sidebar nav a { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; padding: 10px 16px; color: #94a3b8; text-decoration: none; font-size: 13px; }
-        .sidebar nav a .ico { width: 22px; margin-right: 6px; }
-        .sidebar nav a:hover { background: #334155; color: #f1f5f9; }
-        .sidebar nav a.active { background: #0369a1; color: #fff; }
+        /* shell: портрет — нижняя панель, ландшафт — боковая */
+        #app{display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;height:100%;}
+        .main{-webkit-flex:1 1 auto;flex:1 1 auto;min-height:0;min-width:0;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-order:1;order:1;}
+        .nav{-webkit-order:2;order:2;-webkit-flex-shrink:0;flex-shrink:0;display:-webkit-flex;display:flex;height:64px;background:#fff;border-top:1px solid #e4e7ec;}
+        .brand,.nav-foot{display:none;}
+        .nav-btn{-webkit-flex:1;flex:1;position:relative;border:none;background:none;padding:0;color:#98a2b3;font-size:.7rem;font-weight:600;cursor:pointer;}
+        .nav-btn .bi{-webkit-flex-direction:column;flex-direction:column;-webkit-justify-content:center;justify-content:center;}
+        .nav-btn .i{width:24px;height:24px;margin-bottom:4px;}
+        .nav-btn.active{color:#1f6feb;}
 
-        /* Main */
-        .main { -webkit-flex: 1; flex: 1; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; overflow: hidden; }
-        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; -webkit-flex-shrink: 0; flex-shrink: 0; }
-        .topbar h5 { margin: 0; font-weight: 600; font-size: 15px; color: #1e293b; }
-        .topbar-right { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
-        .topbar-right > * { margin-left: 8px; }
-        .content { -webkit-flex: 1; flex: 1; overflow-y: auto; padding: 20px 24px; -webkit-overflow-scrolling: touch; }
+        /* topbar */
+        .topbar{-webkit-flex-shrink:0;flex-shrink:0;height:68px;padding:0 20px;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;}
+        .topbar-title{-webkit-flex:1;flex:1;min-width:0;font-size:1.65rem;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .back-btn{height:44px;margin-right:8px;padding:0 12px 0 4px;border:none;border-radius:22px;background:none;color:#1f6feb;font-size:1rem;font-weight:600;cursor:pointer;-webkit-flex-shrink:0;flex-shrink:0;}
+        .back-btn .i{width:24px;height:24px;}
+        .add-btn{height:44px;padding:0 18px 0 14px;border:none;border-radius:22px;background:#1f6feb;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;-webkit-flex-shrink:0;flex-shrink:0;}
+        .add-btn:active{background:#1557c0;}
+        .add-btn .i{width:20px;height:20px;margin-right:6px;stroke-width:2.5;}
 
-        /* Buttons */
-        .btn { display: inline-block; padding: 6px 14px; font-size: 13px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; text-align: center; white-space: nowrap; -webkit-appearance: none; }
-        .btn-primary { background: #0369a1; color: #fff; border-color: #0369a1; }
-        .btn-primary:hover { background: #0284c7; }
-        .btn-secondary { background: #64748b; color: #fff; border-color: #64748b; }
-        .btn-sm { padding: 3px 8px; font-size: 12px; }
-        .btn-outline-edit { background: #fff; color: #0369a1; border-color: #0369a1; }
-        .btn-outline-edit:hover { background: #0369a1; color: #fff; }
-        .btn-outline-del { background: #fff; color: #dc2626; border-color: #dc2626; }
-        .btn-outline-del:hover { background: #dc2626; color: #fff; }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .content{-webkit-flex:1 1 auto;flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 20px 40px;}
+        .wrap{max-width:900px;}
 
-        /* Search */
-        .search-group { display: -webkit-flex; display: flex; }
-        .search-group input { padding: 5px 10px; border: 1px solid #cbd5e1; border-right: none; border-radius: 4px 0 0 4px; font-size: 13px; width: 200px; }
-        .search-group button { border-radius: 0 4px 4px 0; }
+        /* search */
+        .search{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:48px;margin:4px 0 6px;padding:0 6px 0 14px;border:1px solid #d0d5dd;border-radius:14px;background:#fff;}
+        .search .i{width:20px;height:20px;color:#98a2b3;}
+        .search input[type=text]{-webkit-flex:1;flex:1;min-width:0;height:44px;margin:0 8px;padding:0;border:none;border-radius:0;background:none;font-size:1rem;color:#101828;outline:none;-webkit-appearance:none;-webkit-box-shadow:none;box-shadow:none;}
+        .search button{height:36px;padding:0 14px;border:none;border-radius:10px;background:#e8f0fe;color:#1f6feb;font-size:.9rem;font-weight:700;cursor:pointer;}
 
-        /* Table */
-        .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-        th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; font-weight: 600; padding: 10px 12px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; }
-        td { padding: 8px 12px; font-size: 13px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #f8fafc; }
-        .td-actions { text-align: right; white-space: nowrap; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-        .badge-yes { background: #dcfce7; color: #166534; }
-        .badge-no  { background: #fee2e2; color: #991b1b; }
-        .badge-gray { background: #e2e8f0; color: #475569; }
-        code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 12px; font-family: monospace; }
-        .color-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); vertical-align: middle; margin-right: 4px; }
-        .alert-danger { padding: 12px 16px; border-radius: 4px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .loading-text { text-align: center; padding: 40px; color: #94a3b8; }
-        .small-note { color: #64748b; font-size: 12px; margin-bottom: 8px; }
+        /* list */
+        .sec{margin:18px 4px 10px;font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#667085;}
+        .panel{background:#fff;border:1px solid #eaecf0;border-radius:16px;overflow:hidden;}
+        .li{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;min-height:64px;padding:10px 16px;border-bottom:1px solid #f2f4f7;cursor:pointer;}
+        .li:last-child{border-bottom:none;}
+        .li:active{background:#f5f8ff;}
+        .li.off .li-title,.li.off .li-ico{opacity:.5;}
+        .li-ico{width:42px;height:42px;margin-right:14px;border-radius:12px;background:#f2f4f7;color:#475467;font-size:1.25rem;font-weight:700;-webkit-flex-shrink:0;flex-shrink:0;overflow:hidden;}
+        .li-ico.txt{font-size:.85rem;}
+        .li-ico.tone-blue{background:#e8f0fe;color:#1f6feb;}
+        .li-body{-webkit-flex:1;flex:1;min-width:0;}
+        .li-title{font-size:1rem;font-weight:600;color:#101828;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .li-sub{margin-top:3px;font-size:.82rem;color:#667085;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .li-meta{margin-left:12px;-webkit-flex-shrink:0;flex-shrink:0;text-align:right;}
+        .li .chev{width:18px;height:18px;margin-left:8px;color:#d0d5dd;}
+        .dot{display:inline-block;width:10px;height:10px;margin-left:8px;border-radius:50%;border:1px solid rgba(16,24,40,.12);vertical-align:middle;}
+        .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:700;line-height:16px;}
+        .pill.off{background:#fdecea;color:#b42318;}
+        .pill.gray{background:#f2f4f7;color:#475467;}
 
-        /* Modal */
-        .modal-overlay { display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.5); z-index: 1000; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 40px 16px; }
-        .modal-overlay.open { display: block; }
-        .modal-box { background: #fff; border-radius: 8px; max-width: 640px; margin: 0 auto; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
-        .modal-header { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; }
-        .modal-title { font-weight: 600; font-size: 14px; }
-        .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 0 4px; line-height: 1; }
-        .modal-body { padding: 16px; max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .modal-footer { padding: 10px 16px; border-top: 1px solid #e2e8f0; display: -webkit-flex; display: flex; -webkit-justify-content: flex-end; justify-content: flex-end; }
-        .modal-footer > * { margin-left: 8px; }
+        /* states */
+        .empty{padding:64px 20px;text-align:center;color:#667085;font-size:.95rem;line-height:1.5;}
+        .empty-ico{width:72px;height:72px;margin:0 auto 16px;border-radius:36px;background:#eaecf0;color:#98a2b3;}
+        .empty-ico .i{width:32px;height:32px;}
+        .empty b{display:block;margin-bottom:4px;color:#344054;font-size:1.05rem;}
+        .loading-text{padding:48px 20px;text-align:center;color:#98a2b3;}
+        .alert-danger{margin-top:8px;padding:14px 16px;border-radius:14px;background:#fdecea;color:#b42318;font-size:.95rem;}
 
-        /* Form */
-        .form-row { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin: -6px; }
-        .fc { padding: 6px; }
-        .fc-12 { width: 100%; }
-        .fc-8  { width: 66.666%; }
-        .fc-6  { width: 50%; }
-        .fc-4  { width: 33.333%; }
-        label.lbl { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 4px; }
-        input[type=text], input[type=number], select, textarea { width: 100%; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; font-family: inherit; -webkit-appearance: none; }
-        select { background: #fff; }
-        textarea { resize: vertical; }
-        .form-check { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; padding-top: 20px; }
-        .form-check input { width: auto; margin-right: 8px; }
-        .color-group { display: -webkit-flex; display: flex; }
-        .color-group input[type=color] { width: 44px; height: 34px; padding: 2px; border: 1px solid #cbd5e1; border-right: none; border-radius: 4px 0 0 4px; cursor: pointer; }
-        .color-group input[type=text] { border-radius: 0 4px 4px 0; font-family: monospace; }
-        .req { color: #dc2626; }
+        /* modal */
+        .modal-overlay{display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:1000;padding:32px 16px;background:rgba(16,24,40,.45);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+        .modal-overlay.open{display:block;}
+        .modal-box{max-width:640px;margin:0 auto;background:#fff;border-radius:20px;overflow:hidden;}
+        .modal-header{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:64px;padding:0 8px 0 20px;border-bottom:1px solid #eaecf0;}
+        .modal-title{-webkit-flex:1;flex:1;min-width:0;font-size:1.15rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .modal-close{width:44px;height:44px;padding:0;border:none;border-radius:22px;background:none;color:#667085;cursor:pointer;text-align:center;}
+        .modal-close .i{vertical-align:middle;}
+        .modal-body{padding:20px;}
+        .modal-footer{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;padding:14px 20px;border-top:1px solid #eaecf0;background:#f9fafb;}
+        .modal-footer .spacer{-webkit-flex:1;flex:1;}
+        .btn{height:48px;padding:0 20px;margin-left:10px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;}
+        .btn-primary{background:#1f6feb;color:#fff;}
+        .btn-primary:active{background:#1557c0;}
+        .btn-secondary{background:#eaecf0;color:#344054;}
+        .btn-danger{margin-left:0;padding:0 14px;background:none;color:#d92d20;}
+        .btn-danger .i{width:20px;height:20px;margin-right:6px;}
+        .btn:disabled{opacity:.6;}
 
-        /* Toast */
-        .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
-        .toast { padding: 12px 16px; border-radius: 6px; color: #fff; font-size: 13px; margin-top: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2); max-width: 300px; }
-        .toast-success { background: #166534; }
-        .toast-danger  { background: #991b1b; }
-        .toast-warning { background: #92400e; }
+        /* form */
+        .form-row{display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin:-8px;}
+        .fc{padding:8px;}
+        .fc-12{width:100%;}
+        .fc-8{width:66.666%;}
+        .fc-6{width:50%;}
+        .fc-4{width:33.333%;}
+        label.lbl{display:block;margin-bottom:7px;font-size:.85rem;font-weight:600;color:#344054;}
+        .req{color:#d92d20;}
+        input[type=text],input[type=number],select,textarea{display:block;width:100%;height:50px;padding:0 14px;border:1px solid #d0d5dd;border-radius:12px;background:#fff;color:#101828;font-size:1rem;line-height:normal;-webkit-appearance:none;outline:none;}
+        input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:#1f6feb;-webkit-box-shadow:0 0 0 3px rgba(31,111,235,.15);box-shadow:0 0 0 3px rgba(31,111,235,.15);}
+        select{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%2398a2b3' viewBox='0 0 16 16'%3e%3cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 14px center;background-size:13px;padding-right:38px;}
+        textarea{height:auto;padding:12px 14px;line-height:1.4;resize:none;}
+        .mono{font-family:Menlo,Courier,monospace !important;}
+        /* переключатель вместо чекбокса */
+        .sw-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;min-height:50px;}
+        .sw-row .sw-lbl{-webkit-flex:1;flex:1;margin-right:12px;font-size:.98rem;color:#101828;}
+        .toggle{position:relative;display:block;width:51px;height:31px;-webkit-flex-shrink:0;flex-shrink:0;}
+        .toggle input{position:absolute;opacity:0;width:0;height:0;}
+        .track{position:absolute;top:0;right:0;bottom:0;left:0;border-radius:16px;background:#d0d5dd;cursor:pointer;-webkit-transition:background .2s;transition:background .2s;}
+        .track:before{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;-webkit-box-shadow:0 2px 4px rgba(16,24,40,.2);box-shadow:0 2px 4px rgba(16,24,40,.2);-webkit-transition:-webkit-transform .2s;transition:transform .2s;}
+        .toggle input:checked + .track{background:#12b76a;}
+        .toggle input:checked + .track:before{-webkit-transform:translateX(20px);transform:translateX(20px);}
+        /* цвет: образец + hex + готовая палитра (input type=color в iOS 9 нет) */
+        .color-group{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;}
+        .swatch{width:50px;height:50px;margin-right:10px;border-radius:12px;border:1px solid #d0d5dd;-webkit-flex-shrink:0;flex-shrink:0;}
+        .palette{margin-top:10px;}
+        .pc{display:inline-block;width:34px;height:34px;margin:0 8px 6px 0;padding:0;border:2px solid #fff;border-radius:17px;-webkit-box-shadow:0 0 0 1px #d0d5dd;box-shadow:0 0 0 1px #d0d5dd;cursor:pointer;vertical-align:top;}
+
+        /* toast */
+        .toast-wrap{position:fixed;top:16px;left:16px;right:16px;max-width:420px;margin:0 auto;z-index:9999;}
+        .toast{margin-bottom:8px;padding:14px 18px;border-radius:14px;color:#fff;font-size:.95rem;font-weight:600;text-align:center;-webkit-box-shadow:0 10px 30px rgba(16,24,40,.25);box-shadow:0 10px 30px rgba(16,24,40,.25);}
+        .toast-success{background:#067647;}
+        .toast-danger{background:#b42318;}
+        .toast-warning{background:#b54708;}
+
+        /* iPad ландшафт: боковая навигация */
+        @media (min-width:1000px){
+            #app{-webkit-flex-direction:row;flex-direction:row;}
+            .nav{-webkit-order:0;order:0;-webkit-flex-direction:column;flex-direction:column;width:232px;height:auto;padding:20px 14px;border-top:none;border-right:1px solid #e4e7ec;}
+            .brand{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;padding:4px 8px 26px;font-size:1.3rem;font-weight:800;letter-spacing:-.02em;}
+            .brand small{display:block;font-size:.78rem;font-weight:600;letter-spacing:0;color:#667085;}
+            .brand-mark{width:38px;height:38px;margin-right:10px;border-radius:11px;background:#1f6feb;color:#fff;-webkit-flex-shrink:0;flex-shrink:0;}
+            .brand-mark .i{width:22px;height:22px;}
+            .nav-btn{-webkit-flex:none;flex:none;height:50px;margin-bottom:4px;padding:0 14px;border-radius:12px;color:#475467;font-size:.98rem;}
+            .nav-btn .bi{-webkit-flex-direction:row;flex-direction:row;-webkit-justify-content:flex-start;justify-content:flex-start;}
+            .nav-btn .i{margin:0 12px 0 0;}
+            .nav-btn.active{background:#e8f0fe;color:#1f6feb;}
+            .nav-foot{display:block;margin-top:auto;padding-top:12px;border-top:1px solid #eaecf0;}
+            .nav-foot .nav-btn{width:100%;margin:0;color:#1f6feb;}
+            #back-top{display:none;}
+            .topbar{padding:0 28px;}
+            .content{padding:0 28px 40px;}
+        }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <div class="sidebar-brand">🧊 <span>Holodos</span> Admin</div>
-    <nav>
-        <a href="#" data-section="categories" class="active"><span class="ico">🏷</span>Категории</a>
-        <a href="#" data-section="storage-places"><span class="ico">📦</span>Места хранения</a>
-        <a href="#" data-section="stores"><span class="ico">🏪</span>Магазины</a>
-        <a href="#" data-section="units"><span class="ico">📐</span>Единицы изм.</a>
-        <a href="#" data-section="products"><span class="ico">🥤</span>Продукты</a>
-    </nav>
-    <div style="margin-top:auto;padding:12px 8px;border-top:1px solid #334155;">
-        <a href="/app/index.html" style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;padding:9px 8px;color:#94a3b8;text-decoration:none;font-size:13px;border-radius:4px;">
-            <span style="width:22px;margin-right:6px;">←</span>В приложение
-        </a>
-    </div>
-</div>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <symbol id="i-logo" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><line x1="3.3" y1="7" x2="20.7" y2="17"/><line x1="3.3" y1="17" x2="20.7" y2="7"/><polyline points="9 3.5 12 6.5 15 3.5"/><polyline points="9 20.5 12 17.5 15 20.5"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v1a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v8h14v-8"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-chev-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+    <symbol id="i-chev-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+</svg>
 
-<div class="main">
-    <div class="topbar">
-        <h5 id="section-title">Категории</h5>
-        <div class="topbar-right">
-            <div id="search-box" class="search-group" style="display:none">
-                <input id="search-input" type="text" placeholder="Поиск продукта...">
-                <button class="btn btn-secondary btn-sm" onclick="searchProducts()">🔍</button>
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="openCreateModal()">+ Добавить</button>
+<div id="app">
+    <nav class="nav">
+        <div class="brand"><span class="brand-mark center"><svg class="i"><use xlink:href="#i-logo"/></svg></span><div>Holodos<small>Каталог</small></div></div>
+        <button class="nav-btn active" data-section="categories"><span class="bi"><svg class="i"><use xlink:href="#i-tag"/></svg><span>Категории</span></span></button>
+        <button class="nav-btn" data-section="storage-places"><span class="bi"><svg class="i"><use xlink:href="#i-box"/></svg><span>Места</span></span></button>
+        <button class="nav-btn" data-section="stores"><span class="bi"><svg class="i"><use xlink:href="#i-store"/></svg><span>Магазины</span></span></button>
+        <button class="nav-btn" data-section="units"><span class="bi"><svg class="i"><use xlink:href="#i-hash"/></svg><span>Единицы</span></span></button>
+        <button class="nav-btn" data-section="products"><span class="bi"><svg class="i"><use xlink:href="#i-bag"/></svg><span>Продукты</span></span></button>
+        <div class="nav-foot">
+            <button class="nav-btn" onclick="window.location.href='/app/index.html'"><span class="bi"><svg class="i"><use xlink:href="#i-chev-left"/></svg><span>В приложение</span></span></button>
         </div>
-    </div>
-    <div class="content">
-        <div id="table-container"></div>
+    </nav>
+
+    <div class="main">
+        <div class="topbar">
+            <button class="back-btn" id="back-top" onclick="window.location.href='/app/index.html'" aria-label="В приложение"><span class="bi"><svg class="i"><use xlink:href="#i-chev-left"/></svg>Приложение</span></button>
+            <div class="topbar-title" id="section-title">Категории</div>
+            <button class="add-btn" onclick="openCreateModal()"><span class="bi"><svg class="i"><use xlink:href="#i-plus"/></svg>Добавить</span></button>
+        </div>
+        <div class="content">
+            <div class="wrap">
+                <div id="search-box" class="search" style="display:none">
+                    <svg class="i"><use xlink:href="#i-search"/></svg>
+                    <input id="search-input" type="text" placeholder="Поиск продукта...">
+                    <button onclick="searchProducts()">Найти</button>
+                </div>
+                <div id="table-container"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -137,12 +203,14 @@
     <div class="modal-box">
         <div class="modal-header">
             <div class="modal-title" id="modal-title"></div>
-            <button class="modal-close" onclick="hideModal()">✕</button>
+            <button class="modal-close" onclick="hideModal()" aria-label="Закрыть"><svg class="i"><use xlink:href="#i-x"/></svg></button>
         </div>
         <div class="modal-body" id="modal-body"></div>
         <div class="modal-footer">
-            <button class="btn btn-secondary btn-sm" onclick="hideModal()">Отмена</button>
-            <button class="btn btn-primary btn-sm" id="save-btn" onclick="saveItem()">✓ Сохранить</button>
+            <button class="btn btn-danger" id="delete-btn" onclick="deleteCurrent()" style="display:none"><span class="bi"><svg class="i"><use xlink:href="#i-trash"/></svg>Удалить</span></button>
+            <div class="spacer"></div>
+            <button class="btn btn-secondary" onclick="hideModal()">Отмена</button>
+            <button class="btn btn-primary" id="save-btn" onclick="saveItem()">Сохранить</button>
         </div>
     </div>
 </div>
@@ -196,12 +264,18 @@ function fChk(form, name) {
 function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function colorCell(c) {
-    if (!c) return '<span style="color:#94a3b8">—</span>';
-    return '<span class="color-dot" style="background:' + c + '"></span><code style="font-size:11px">' + esc(c) + '</code>';
+function ico(name, cls) {
+    return '<svg class="i' + (cls ? ' ' + cls : '') + '"><use xlink:href="#i-' + name + '"></use></svg>';
 }
-function boolBadge(v) {
-    return v ? '<span class="badge badge-yes">Да</span>' : '<span class="badge badge-no">Нет</span>';
+function safeColor(c) {
+    return /^#[0-9a-fA-F]{3,8}$/.test(c || '') ? c : '';
+}
+function colorDot(c) {
+    c = safeColor(c);
+    return c ? '<span class="dot" style="background:' + c + '"></span>' : '';
+}
+function offPill(active, label) {
+    return active === false ? '<span class="pill off">' + label + '</span>' : '';
 }
 function selectOpts(items, selectedId, emptyLabel) {
     var h = '<option value="">' + emptyLabel + '</option>';
@@ -212,39 +286,62 @@ function selectOpts(items, selectedId, emptyLabel) {
     }
     return h;
 }
+function toggleField(name, id, label, checked) {
+    return '<div class="sw-row"><label class="sw-lbl" for="' + id + '">' + label + '</label>' +
+        '<label class="toggle"><input type="checkbox" name="' + name + '" id="' + id + '"' + (checked ? ' checked' : '') + '>' +
+        '<span class="track"></span></label></div>';
+}
 
 // ── Row renderers ─────────────────────────────────────────────────────────────
-var DICT_COLS = ['ID', 'Название', 'Описание', 'Иконка', 'Цвет', 'Порядок', 'Активно', ''];
+// Каждая строка: { ico: html иконки, title, sub, meta, active }
+function row(it, r) {
+    return '<div class="li' + (r.active === false ? ' off' : '') + '" onclick="openEditModal(' + it.id + ')">' +
+        r.ico +
+        '<div class="li-body"><div class="li-title">' + r.title + '</div>' +
+        (r.sub ? '<div class="li-sub">' + r.sub + '</div>' : '') + '</div>' +
+        (r.meta ? '<div class="li-meta">' + r.meta + '</div>' : '') +
+        ico('chev-right', 'chev') + '</div>';
+}
 
 function dictRow(r) {
-    return '<td>' + r.id + '</td>' +
-        '<td><strong>' + esc(r.name) + '</strong></td>' +
-        '<td style="color:#64748b">' + esc(r.description || '') + '</td>' +
-        '<td>' + (r.icon ? '<span style="font-size:1.2em">' + esc(r.icon) + '</span>' : '—') + '</td>' +
-        '<td>' + colorCell(r.color) + '</td>' +
-        '<td>' + (r.sortOrder || 0) + '</td>' +
-        '<td>' + boolBadge(r.active) + '</td>';
+    return {
+        ico: '<div class="li-ico center">' + (r.icon ? esc(r.icon) : ico(sections[currentSection].icon)) + '</div>',
+        title: esc(r.name) + colorDot(r.color),
+        sub: esc(r.description || '') ,
+        meta: offPill(r.active, 'Неактивно'),
+        active: r.active
+    };
 }
 
 // ── Form builders ─────────────────────────────────────────────────────────────
+var PALETTE = ['#1f6feb', '#12b76a', '#f79009', '#f04438', '#7a5af8', '#ee46bc', '#06aed4', '#667085'];
+
+function setColor(c) {
+    var t = document.getElementById('ch'), s = document.getElementById('cs');
+    if (t && c !== undefined) t.value = c;
+    if (s && t) s.style.background = safeColor(t.value) || '#fff';
+}
+
 function dictionaryForm(r) {
-    return '<form id="edit-form"><div class="form-row">' +
+    var color = safeColor(r.color) || '#667085';
+    var pal = '';
+    for (var i = 0; i < PALETTE.length; i++) {
+        pal += '<button type="button" class="pc" style="background:' + PALETTE[i] + '" onclick="setColor(\'' + PALETTE[i] + '\')"></button>';
+    }
+    return '<form id="edit-form" onsubmit="return false"><div class="form-row">' +
         '<div class="fc fc-12"><label class="lbl">Название <span class="req">*</span></label>' +
-            '<input type="text" name="name" value="' + esc(r.name || '') + '" required autofocus></div>' +
+            '<input type="text" name="name" value="' + esc(r.name || '') + '" required></div>' +
         '<div class="fc fc-12"><label class="lbl">Описание</label>' +
             '<input type="text" name="description" value="' + esc(r.description || '') + '"></div>' +
         '<div class="fc fc-6"><label class="lbl">Иконка (эмодзи)</label>' +
-            '<input type="text" name="icon" placeholder="🥗" value="' + esc(r.icon || '') + '"></div>' +
-        '<div class="fc fc-6"><label class="lbl">Цвет</label>' +
-            '<div class="color-group">' +
-                '<input type="color" id="cp" value="' + (r.color || '#6c757d') + '" oninput="document.getElementById(\'ch\').value=this.value">' +
-                '<input type="text" id="ch" name="color" value="' + (r.color || '#6c757d') + '" maxlength="7" placeholder="#6c757d" oninput="document.getElementById(\'cp\').value=this.value">' +
-            '</div></div>' +
+            '<input type="text" name="icon" placeholder="напр. 🍎" value="' + esc(r.icon || '') + '"></div>' +
         '<div class="fc fc-6"><label class="lbl">Порядок сортировки</label>' +
             '<input type="number" name="sortOrder" value="' + (r.sortOrder || 0) + '" min="0"></div>' +
-        '<div class="fc fc-6"><div class="form-check">' +
-            '<input type="checkbox" name="active" id="chkA" ' + (r.active !== false ? 'checked' : '') + '>' +
-            '<label for="chkA">Активно</label></div></div>' +
+        '<div class="fc fc-12"><label class="lbl">Цвет</label>' +
+            '<div class="color-group"><span class="swatch" id="cs" style="background:' + color + '"></span>' +
+            '<input type="text" id="ch" name="color" class="mono" value="' + color + '" maxlength="7" placeholder="#667085" oninput="setColor()"></div>' +
+            '<div class="palette">' + pal + '</div></div>' +
+        '<div class="fc fc-12">' + toggleField('active', 'chkA', 'Активно', r.active !== false) + '</div>' +
     '</div></form>';
 }
 
@@ -268,25 +365,23 @@ function unitForm(r) {
         var t = UNIT_TYPES[i];
         typeOpts += '<option value="' + t + '"' + (r.unitType === t ? ' selected' : '') + '>' + UNIT_LABELS[t] + '</option>';
     }
-    return '<form id="edit-form"><div class="form-row">' +
+    return '<form id="edit-form" onsubmit="return false"><div class="form-row">' +
         '<div class="fc fc-4"><label class="lbl">Код <span class="req">*</span></label>' +
-            '<input type="text" name="code" value="' + esc(r.code || '') + '" required autofocus style="font-family:monospace"></div>' +
+            '<input type="text" name="code" class="mono" value="' + esc(r.code || '') + '" required></div>' +
         '<div class="fc fc-4"><label class="lbl">Краткое <span class="req">*</span></label>' +
             '<input type="text" name="shortName" value="' + esc(r.shortName || '') + '" required></div>' +
         '<div class="fc fc-4"><label class="lbl">Тип <span class="req">*</span></label>' +
             '<select name="unitType" required>' + typeOpts + '</select></div>' +
-        '<div class="fc fc-8"><label class="lbl">Полное название <span class="req">*</span></label>' +
+        '<div class="fc fc-12"><label class="lbl">Полное название <span class="req">*</span></label>' +
             '<input type="text" name="name" value="' + esc(r.name || '') + '" required></div>' +
-        '<div class="fc fc-4"><div class="form-check">' +
-            '<input type="checkbox" name="active" id="chkA" ' + (r.active !== false ? 'checked' : '') + '>' +
-            '<label for="chkA">Активна</label></div></div>' +
+        '<div class="fc fc-12">' + toggleField('active', 'chkA', 'Активна', r.active !== false) + '</div>' +
     '</div></form>';
 }
 
 function productFormHtml(r) {
-    return '<form id="edit-form"><div class="form-row">' +
+    return '<form id="edit-form" onsubmit="return false"><div class="form-row">' +
         '<div class="fc fc-12"><label class="lbl">Название <span class="req">*</span></label>' +
-            '<input type="text" name="name" value="' + esc(r.name || '') + '" required autofocus></div>' +
+            '<input type="text" name="name" value="' + esc(r.name || '') + '" required></div>' +
         '<div class="fc fc-6"><label class="lbl">Категория <span class="req">*</span></label>' +
             '<select name="categoryId" required>' + selectOpts(_cats, r.categoryId, '— выберите —') + '</select></div>' +
         '<div class="fc fc-6"><label class="lbl">Единица измерения <span class="req">*</span></label>' +
@@ -297,23 +392,19 @@ function productFormHtml(r) {
             '<select name="defaultStoreId">' + selectOpts(_stores, r.defaultStoreId, '— не выбран —') + '</select></div>' +
         '<div class="fc fc-12"><label class="lbl">Описание</label>' +
             '<textarea name="description" rows="2">' + esc(r.description || '') + '</textarea></div>' +
-        '<div class="fc fc-4"><label class="lbl">Срок хранения (дней)</label>' +
+        '<div class="fc fc-4"><label class="lbl">Срок хранения (дн.)</label>' +
             '<input type="number" name="shelfLifeDays" min="1" value="' + (r.shelfLifeDays || '') + '"></div>' +
         '<div class="fc fc-4"><label class="lbl">Мин. остаток</label>' +
             '<input type="number" step="0.001" name="minimumQuantityThreshold" value="' + (r.minimumQuantityThreshold || '') + '"></div>' +
         '<div class="fc fc-4"><label class="lbl">Кол-во дозаказа</label>' +
             '<input type="number" step="0.001" name="reorderQuantity" value="' + (r.reorderQuantity || '') + '"></div>' +
         '<div class="fc fc-6"><label class="lbl">Штрихкод</label>' +
-            '<input type="text" name="barcode" value="' + esc(r.barcode || '') + '" style="font-family:monospace"></div>' +
+            '<input type="text" name="barcode" class="mono" value="' + esc(r.barcode || '') + '"></div>' +
         '<div class="fc fc-6"><label class="lbl">Заметка</label>' +
             '<input type="text" name="note" value="' + esc(r.note || '') + '"></div>' +
-        '<div class="fc fc-12" style="display:-webkit-flex;display:flex">' +
-            '<div class="form-check" style="margin-right:24px">' +
-                '<input type="checkbox" name="autoAddShopping" id="chkAuto" ' + (r.autoAddShopping !== false ? 'checked' : '') + '>' +
-                '<label for="chkAuto">Авто-добавление в список покупок</label></div>' +
-            '<div class="form-check">' +
-                '<input type="checkbox" name="active" id="chkA" ' + (r.active !== false ? 'checked' : '') + '>' +
-                '<label for="chkA">Активен</label></div>' +
+        '<div class="fc fc-12">' +
+            toggleField('autoAddShopping', 'chkAuto', 'Авто-добавление в список покупок', r.autoAddShopping !== false) +
+            toggleField('active', 'chkA', 'Активен', r.active !== false) +
         '</div>' +
     '</div></form>';
 }
@@ -339,30 +430,33 @@ function buildProductBody(form) {
 // ── Section config ────────────────────────────────────────────────────────────
 var sections = {
     categories: {
-        title: 'Категории', endpoint: 'categories', columns: DICT_COLS,
+        title: 'Категории', endpoint: 'categories', icon: 'tag', one: 'категорию',
         renderRow: dictRow,
         getFormHtml: function(r) { return Promise.resolve(dictionaryForm(r)); },
         buildBody: buildDictBody
     },
     'storage-places': {
-        title: 'Места хранения', endpoint: 'storage-places', columns: DICT_COLS,
+        title: 'Места хранения', endpoint: 'storage-places', icon: 'box', one: 'место хранения',
         renderRow: dictRow,
         getFormHtml: function(r) { return Promise.resolve(dictionaryForm(r)); },
         buildBody: buildDictBody
     },
     stores: {
-        title: 'Магазины', endpoint: 'stores', columns: DICT_COLS,
+        title: 'Магазины', endpoint: 'stores', icon: 'store', one: 'магазин',
         renderRow: dictRow,
         getFormHtml: function(r) { return Promise.resolve(dictionaryForm(r)); },
         buildBody: buildDictBody
     },
     units: {
-        title: 'Единицы измерения', endpoint: 'units',
-        columns: ['ID', 'Код', 'Название', 'Краткое', 'Тип', 'Активна', ''],
+        title: 'Единицы измерения', endpoint: 'units', icon: 'hash', one: 'единицу',
         renderRow: function(r) {
-            return '<td>' + r.id + '</td><td><code>' + esc(r.code) + '</code></td><td>' + esc(r.name) + '</td>' +
-                '<td>' + esc(r.shortName) + '</td><td><span class="badge badge-gray">' + r.unitType + '</span></td>' +
-                '<td>' + boolBadge(r.active) + '</td>';
+            return {
+                ico: '<div class="li-ico txt center tone-blue">' + esc(r.shortName) + '</div>',
+                title: esc(r.name),
+                sub: '<span class="mono">' + esc(r.code) + '</span> · ' + esc(UNIT_LABELS[r.unitType] || r.unitType),
+                meta: offPill(r.active, 'Неактивна'),
+                active: r.active
+            };
         },
         getFormHtml: function(r) { return Promise.resolve(unitForm(r)); },
         buildBody: function(form) {
@@ -370,13 +464,20 @@ var sections = {
         }
     },
     products: {
-        title: 'Продукты', endpoint: 'products', paginated: true,
-        columns: ['ID', 'Название', 'Категория', 'Ед. изм.', 'Место хранения', 'Магазин', 'Активен', ''],
+        title: 'Продукты', endpoint: 'products', paginated: true, icon: 'bag', one: 'продукт',
         renderRow: function(r) {
-            return '<td>' + r.id + '</td><td><strong>' + esc(r.name) + '</strong></td>' +
-                '<td>' + esc(r.categoryName || '—') + '</td><td>' + esc(r.defaultUnitName || '—') + '</td>' +
-                '<td>' + esc(r.defaultStoragePlaceName || '—') + '</td><td>' + esc(r.defaultStoreName || '—') + '</td>' +
-                '<td>' + boolBadge(r.active) + '</td>';
+            var parts = [];
+            if (r.categoryName) parts.push(esc(r.categoryName));
+            if (r.defaultUnitName) parts.push(esc(r.defaultUnitName));
+            if (r.defaultStoragePlaceName) parts.push(esc(r.defaultStoragePlaceName));
+            if (r.defaultStoreName) parts.push(esc(r.defaultStoreName));
+            return {
+                ico: '<div class="li-ico center tone-blue">' + esc(String(r.name || '?').charAt(0).toUpperCase()) + '</div>',
+                title: esc(r.name),
+                sub: parts.join(' · '),
+                meta: offPill(r.active, 'Неактивен'),
+                active: r.active
+            };
         },
         getFormHtml: function(r) {
             if (_cats.length && _units.length && _places.length) return Promise.resolve(productFormHtml(r));
@@ -392,9 +493,9 @@ function loadSection(section) {
     var cfg = sections[section];
     document.getElementById('section-title').textContent = cfg.title;
 
-    var links = document.querySelectorAll('.sidebar nav a');
+    var links = document.querySelectorAll('.nav-btn[data-section]');
     for (var i = 0; i < links.length; i++) {
-        links[i].className = links[i].getAttribute('data-section') === section ? 'active' : '';
+        links[i].className = links[i].getAttribute('data-section') === section ? 'nav-btn active' : 'nav-btn';
     }
 
     document.getElementById('search-box').style.display = section === 'products' ? '' : 'none';
@@ -421,31 +522,20 @@ function fetchItems(section, search) {
 
 function renderTable(section, items) {
     var cfg = sections[section];
-    var thead = '';
-    for (var i = 0; i < cfg.columns.length; i++) thead += '<th>' + cfg.columns[i] + '</th>';
-
-    var tbody = '';
+    var el = document.getElementById('table-container');
     if (!items.length) {
-        tbody = '<tr><td colspan="99" style="text-align:center;color:#94a3b8;padding:32px">Нет записей</td></tr>';
-    } else {
-        for (var j = 0; j < items.length; j++) {
-            var it = items[j];
-            var label = esc(it.name || it.code || it.id);
-            tbody += '<tr>' + cfg.renderRow(it) +
-                '<td class="td-actions">' +
-                    '<button class="btn btn-outline-edit btn-sm" onclick="openEditModal(' + it.id + ')" style="margin-right:4px">✏</button>' +
-                    '<button class="btn btn-outline-del btn-sm" onclick="confirmDelete(' + it.id + ',\'' + label + '\')">🗑</button>' +
-                '</td></tr>';
-        }
+        el.innerHTML = '<div class="empty"><div class="empty-ico center">' + ico(cfg.icon) + '</div>' +
+            '<b>Нет записей</b>Нажмите «Добавить», чтобы создать ' + cfg.one + '</div>';
+        return;
     }
-
-    document.getElementById('table-container').innerHTML =
-        '<p class="small-note">Записей: ' + items.length + '</p>' +
-        '<div class="table-responsive"><table><thead><tr>' + thead + '</tr></thead><tbody>' + tbody + '</tbody></table></div>';
+    var h = '';
+    for (var j = 0; j < items.length; j++) h += row(items[j], cfg.renderRow(items[j]));
+    el.innerHTML = '<div class="sec">Записей: ' + items.length + '</div><div class="panel">' + h + '</div>';
 }
 
 function searchProducts() {
     var q = document.getElementById('search-input').value;
+    document.getElementById('search-input').blur();
     document.getElementById('table-container').innerHTML = '<div class="loading-text">Загрузка...</div>';
     fetchItems('products', q).then(function(items) {
         currentItems = items;
@@ -455,12 +545,16 @@ function searchProducts() {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 function showModal() { document.getElementById('editModal').className = 'modal-overlay open'; }
-function hideModal() { document.getElementById('editModal').className = 'modal-overlay'; }
+function hideModal() {
+    var a = document.activeElement; if (a && a.blur && a !== document.body) a.blur();
+    document.getElementById('editModal').className = 'modal-overlay';
+}
 
 function openCreateModal() {
     editingId = null;
     var cfg = sections[currentSection];
-    document.getElementById('modal-title').textContent = 'Добавить — ' + cfg.title;
+    document.getElementById('modal-title').textContent = 'Добавить ' + cfg.one;
+    document.getElementById('delete-btn').style.display = 'none';
     document.getElementById('modal-body').innerHTML = '<div class="loading-text">Загрузка...</div>';
     showModal();
     cfg.getFormHtml({}).then(function(html) {
@@ -478,7 +572,8 @@ function openEditModal(id) {
     if (!item) { showToast('Элемент не найден', 'warning'); return; }
     editingId = id;
     var cfg = sections[currentSection];
-    document.getElementById('modal-title').textContent = 'Редактировать — ' + cfg.title;
+    document.getElementById('modal-title').textContent = item.name || cfg.title;
+    document.getElementById('delete-btn').style.display = '';
     document.getElementById('modal-body').innerHTML = '<div class="loading-text">Загрузка...</div>';
     showModal();
     cfg.getFormHtml(item).then(function(html) {
@@ -494,6 +589,7 @@ function saveItem() {
     var cfg = sections[currentSection];
     var body = cfg.buildBody(formEl);
     var saveBtn = document.getElementById('save-btn');
+    if (saveBtn.disabled) return;
     var eid = editingId;
     var sec = currentSection;
     saveBtn.disabled = true;
@@ -514,12 +610,21 @@ function saveItem() {
     });
 }
 
+function deleteCurrent() {
+    var item = null;
+    for (var i = 0; i < currentItems.length; i++) {
+        if (currentItems[i].id === editingId) { item = currentItems[i]; break; }
+    }
+    if (item) confirmDelete(item.id, item.name || item.code || item.id);
+}
+
 function confirmDelete(id, name) {
     if (!confirm('Удалить «' + name + '»?\n\nОперация необратима.')) return;
     var cfg = sections[currentSection];
     var sec = currentSection;
     xhr(cfg.endpoint + '/' + id, 'DELETE').then(function() {
         showToast('Запись удалена', 'success');
+        hideModal();
         if (sec !== 'products') clearDropdowns();
         loadSection(sec);
     }).catch(function(e) { showToast('Ошибка: ' + e.message, 'danger'); });
@@ -536,7 +641,7 @@ function showToast(msg, type) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-    var links = document.querySelectorAll('.sidebar nav a');
+    var links = document.querySelectorAll('.nav-btn[data-section]');
     for (var i = 0; i < links.length; i++) {
         (function(a) {
             a.addEventListener('click', function(e) {
