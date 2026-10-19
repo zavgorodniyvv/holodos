@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.holodos.common.domain.ConflictException;
+import com.holodos.common.domain.ExternalServiceException;
 import com.holodos.integrations.googlekeep.domain.SyncBinding;
 import com.holodos.integrations.googlekeep.infrastructure.SyncBindingRepository;
 import com.holodos.integrations.googlekeep.infrastructure.SyncEventRepository;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,7 +36,8 @@ class GoogleKeepSyncServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new GoogleKeepSyncService(syncBindingRepository, syncEventRepository, shoppingListItemRepository, googleKeepClient);
+        service = new GoogleKeepSyncService(syncBindingRepository, syncEventRepository, shoppingListItemRepository, googleKeepClient,
+            TransactionOperations.withoutTransaction());
     }
 
     @Test
@@ -153,7 +157,7 @@ class GoogleKeepSyncServiceTest {
         when(syncBindingRepository.findByUserKeyAndProvider("user1", GoogleKeepSyncService.PROVIDER))
             .thenReturn(Optional.of(b));
 
-        assertThrows(IllegalStateException.class, () -> service.syncNow("user1"));
+        assertThrows(ConflictException.class, () -> service.syncNow("user1"));
     }
 
     // --- syncNow failure handling ---
@@ -176,9 +180,10 @@ class GoogleKeepSyncServiceTest {
             .thenReturn(new GoogleKeepClient.KeepSyncResult(false, "etag-1", "conflict"));
         when(syncBindingRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        String result = service.syncNow("user1");
+        // A failed push throws (rolling back imported items) but the failure itself is still recorded
+        ExternalServiceException ex = assertThrows(ExternalServiceException.class, () -> service.syncNow("user1"));
 
-        assertEquals("conflict", result);
+        assertEquals("conflict", ex.getMessage());
         assertEquals(1, b.getFailureCount());
         assertEquals("FAILED", b.getLastSyncStatus());
         assertNotNull(b.getNextRetryAt());
@@ -199,7 +204,7 @@ class GoogleKeepSyncServiceTest {
             .thenThrow(new IllegalStateException("network error"));
         when(syncBindingRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        assertThrows(IllegalStateException.class, () -> service.syncNow("user1"));
+        assertThrows(ExternalServiceException.class, () -> service.syncNow("user1"));
         assertEquals(1, b.getFailureCount());
         assertEquals("FAILED", b.getLastSyncStatus());
     }
@@ -219,6 +224,8 @@ class GoogleKeepSyncServiceTest {
         item.setStatus(ShoppingItemStatus.COMPLETED);
         item.setCompletedAt(OffsetDateTime.now().minusMinutes(10));
         ReflectionTestUtils.setField(item, "id", 5L);
+        // Completed before the last sync, then unchecked in Keep: the remote change is newer
+        b.setLastSyncedAt(OffsetDateTime.now().minusMinutes(5));
 
         when(syncBindingRepository.findByUserKeyAndProvider("user1", GoogleKeepSyncService.PROVIDER))
             .thenReturn(Optional.of(b));
@@ -298,5 +305,38 @@ class GoogleKeepSyncServiceTest {
         assertNull(b.getLastErrorMessage());
         assertNull(b.getNextRetryAt());
         assertEquals("SUCCESS", b.getLastSyncStatus());
+    }
+
+    @Test
+    void syncNow_keepsItemCompletedLocallySinceLastSync() {
+        SyncBinding b = new SyncBinding();
+        b.setUserKey("user1");
+        b.setProvider(GoogleKeepSyncService.PROVIDER);
+        b.setRemoteNoteId("note-1");
+        b.setEnabled(true);
+        b.setLastSyncedAt(OffsetDateTime.now().minusHours(1));
+
+        ShoppingListItem item = new ShoppingListItem();
+        item.setTitle("Butter");
+        item.setStatus(ShoppingItemStatus.COMPLETED);
+        item.setCompletedAt(OffsetDateTime.now().minusMinutes(1)); // bought after the last sync
+        ReflectionTestUtils.setField(item, "id", 5L);
+
+        when(syncBindingRepository.findByUserKeyAndProvider("user1", GoogleKeepSyncService.PROVIDER))
+            .thenReturn(Optional.of(b));
+        when(googleKeepClient.fetchChecklist("note-1"))
+            .thenReturn(new GoogleKeepClient.KeepRemoteState("etag-1",
+                List.of(new GoogleKeepClient.KeepChecklistItem("Butter", false, "shopping-5"))));
+        when(shoppingListItemRepository.findById(5L)).thenReturn(Optional.of(item));
+        when(shoppingListItemRepository.findByStatusOrderBySortOrderAsc(ShoppingItemStatus.ACTIVE))
+            .thenReturn(List.of());
+        when(googleKeepClient.pushChecklist(any(), any(), any()))
+            .thenReturn(new GoogleKeepClient.KeepSyncResult(true, "etag-2", "ok"));
+        when(syncBindingRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.syncNow("user1");
+
+        assertEquals(ShoppingItemStatus.COMPLETED, item.getStatus());
+        verify(shoppingListItemRepository, never()).save(item);
     }
 }

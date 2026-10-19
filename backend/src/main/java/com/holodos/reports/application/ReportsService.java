@@ -1,73 +1,87 @@
 package com.holodos.reports.application;
 
-import com.holodos.common.domain.OperationLog;
 import com.holodos.common.infrastructure.OperationLogRepository;
 import com.holodos.inventory.domain.StockEntry;
 import com.holodos.inventory.domain.StockStatus;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
-import com.holodos.purchases.domain.PurchaseEvent;
 import com.holodos.purchases.infrastructure.PurchaseEventRepository;
 import com.holodos.reports.api.ReportDtos.ReportFilter;
 import com.holodos.reports.api.ReportDtos.ReportsResponse;
+import com.holodos.settings.application.UserSettingsService;
 import com.holodos.shopping.domain.ShoppingItemStatus;
 import com.holodos.shopping.infrastructure.ShoppingListItemRepository;
+import org.springframework.data.jpa.domain.Specification;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
 public class ReportsService {
+    private static final OffsetDateTime MIN_TIME = OffsetDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+
     private final StockEntryRepository stockEntryRepository;
     private final PurchaseEventRepository purchaseEventRepository;
     private final ShoppingListItemRepository shoppingListItemRepository;
     private final OperationLogRepository operationLogRepository;
+    private final UserSettingsService userSettingsService;
+    private final ZoneId zone;
 
     public ReportsService(StockEntryRepository stockEntryRepository, PurchaseEventRepository purchaseEventRepository,
-                          ShoppingListItemRepository shoppingListItemRepository, OperationLogRepository operationLogRepository) {
+                          ShoppingListItemRepository shoppingListItemRepository, OperationLogRepository operationLogRepository,
+                          UserSettingsService userSettingsService, @Value("${holodos.time-zone:Europe/Kyiv}") String zone) {
         this.stockEntryRepository = stockEntryRepository;
         this.purchaseEventRepository = purchaseEventRepository;
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.operationLogRepository = operationLogRepository;
+        this.userSettingsService = userSettingsService;
+        this.zone = ZoneId.of(zone);
     }
 
     public ReportsResponse build(ReportFilter filter) {
         OffsetDateTime now = OffsetDateTime.now();
-        List<StockEntry> stock = stockEntryRepository.findAll().stream()
+        OffsetDateTime from = filter.from() == null ? MIN_TIME : filter.from();
+        OffsetDateTime to = filter.to() == null ? now.plusYears(100) : filter.to();
+
+        // Current inventory only: consumed/discarded batches are history, not stock
+        List<StockEntry> stock = stockEntryRepository.findWithProductByStatus(StockStatus.AVAILABLE).stream()
             .filter(s -> inRange(s.getAddedAt(), filter.from(), filter.to()))
             .filter(s -> filter.storagePlaceId() == null || s.getStoragePlace().getId().equals(filter.storagePlaceId()))
             .filter(s -> filter.categoryId() == null || s.getProduct().getCategory().getId().equals(filter.categoryId()))
             .toList();
-
         Map<String, Long> inventoryByStorage = countBy(stock, s -> s.getStoragePlace().getName());
         Map<String, Long> inventoryByCategory = countBy(stock, s -> s.getProduct().getCategory().getName());
-
-        Map<String, Long> shoppingByStore = shoppingListItemRepository.findAll().stream()
-            .filter(i -> i.getStatus() == ShoppingItemStatus.ACTIVE)
+        Map<String, Long> shoppingByStore = shoppingListItemRepository.findByStatusOrderBySortOrderAsc(ShoppingItemStatus.ACTIVE).stream()
             .filter(i -> filter.storeId() == null || (i.getStore() != null && i.getStore().getId().equals(filter.storeId())))
             .collect(Collectors.groupingBy(i -> i.getStore() == null ? "UNASSIGNED" : i.getStore().getName(), Collectors.counting()));
+        Map<String, Long> operationByEvent = new HashMap<>();
+        for (Object[] row : operationLogRepository.countByEventTypeBetween(from, to)) {
+            operationByEvent.put((String) row[0], ((Number) row[1]).longValue());
+        }
 
-        Map<String, Long> operationByEvent = countBy(operationLogRepository.findAll().stream()
-            .filter(o -> inRange(o.getCreatedAt(), filter.from(), filter.to()))
-            .toList(), OperationLog::getEventType);
-
-        long expiringSoon = stock.stream().filter(s -> s.getStatus() == StockStatus.AVAILABLE && s.getExpiresAt() != null && s.getExpiresAt().isBefore(now.plusDays(3)) && s.getExpiresAt().isAfter(now)).count();
-        long expired = stock.stream().filter(s -> s.getStatus() == StockStatus.EXPIRED || (s.getExpiresAt() != null && s.getExpiresAt().isBefore(now))).count();
+        // Expiry is a calendar date stored as midnight UTC; "today" is the household's date, as in the UI and notifications
+        LocalDate today = now.atZoneSameInstant(zone).toLocalDate();
+        LocalDate expiringBoundary = today.plusDays(userSettingsService.getOrDefault("default").getExpiryDaysBeforeNotify());
+        long expiringSoon = stock.stream().map(s -> utcDate(s.getExpiresAt()))
+            .filter(d -> d != null && !d.isBefore(today) && !d.isAfter(expiringBoundary)).count();
+        long expired = stock.stream().map(s -> utcDate(s.getExpiresAt()))
+            .filter(d -> d != null && d.isBefore(today)).count();
         long storedTooLong = stock.stream().filter(s -> s.getAddedAt() != null && s.getAddedAt().isBefore(now.minusDays(365))).count();
-
-        List<PurchaseEvent> purchases = purchaseEventRepository.findAll().stream()
-            .filter(p -> inRange(p.getCreatedAt(), filter.from(), filter.to()))
-            .filter(p -> filter.storeId() == null || (p.getStore() != null && p.getStore().getId().equals(filter.storeId())))
-            .toList();
-
-        long discards = stock.stream().filter(s -> s.getStatus() == StockStatus.DISCARDED).count();
-
+        long purchases = filter.storeId() == null
+            ? purchaseEventRepository.countByPurchasedAtBetween(from, to)
+            : purchaseEventRepository.countByPurchasedAtBetweenAndStoreId(from, to, filter.storeId());
+        long discards = stockEntryRepository.count(discardedMatching(filter, from, to));
         return new ReportsResponse(
             sortMap(inventoryByStorage),
             sortMap(inventoryByCategory),
@@ -76,9 +90,24 @@ public class ReportsService {
             expiringSoon,
             expired,
             storedTooLong,
-            (long) purchases.size(),
+            purchases,
             discards
         );
+    }
+
+    private static Specification<StockEntry> discardedMatching(ReportFilter filter, OffsetDateTime from, OffsetDateTime to) {
+        return (root, query, cb) -> {
+            var predicate = cb.and(
+                cb.equal(root.get("status"), StockStatus.DISCARDED),
+                cb.between(root.get("addedAt"), from, to));
+            if (filter.storagePlaceId() != null) {
+                predicate = cb.and(predicate, cb.equal(root.get("storagePlace").get("id"), filter.storagePlaceId()));
+            }
+            if (filter.categoryId() != null) {
+                predicate = cb.and(predicate, cb.equal(root.get("product").get("category").get("id"), filter.categoryId()));
+            }
+            return predicate;
+        };
     }
 
     public String buildCsv(ReportFilter filter) {
@@ -95,6 +124,10 @@ public class ReportsService {
         r.shoppingByStore().forEach((k,v) -> sb.append("shoppingByStore.").append(escape(k)).append(',').append(v).append("\n"));
         r.operationLogByEvent().forEach((k,v) -> sb.append("operationLogByEvent.").append(escape(k)).append(',').append(v).append("\n"));
         return sb.toString();
+    }
+
+    private static LocalDate utcDate(OffsetDateTime value) {
+        return value == null ? null : value.atZoneSameInstant(ZoneOffset.UTC).toLocalDate();
     }
 
     private <T> Map<String, Long> countBy(List<T> data, Function<T, String> keyFn) {

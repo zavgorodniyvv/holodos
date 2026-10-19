@@ -10,7 +10,7 @@ public class FilesystemMediaStorageGateway implements MediaStorageGateway {
     private final Path rootPath;
 
     public FilesystemMediaStorageGateway(MediaStorageProperties properties) {
-        this.rootPath = Path.of(properties.rootPath());
+        this.rootPath = Path.of(properties.rootPath()).toAbsolutePath().normalize();
     }
 
     @Override
@@ -20,20 +20,29 @@ public class FilesystemMediaStorageGateway implements MediaStorageGateway {
 
     @Override
     public void store(String objectKey, byte[] content) throws IOException {
-        Path target = rootPath.resolve(objectKey);
+        Path target = resolve(objectKey);
         Files.createDirectories(target.getParent());
         Files.write(target, content);
     }
 
     @Override
     public byte[] read(String objectKey) throws IOException {
-        Path target = rootPath.resolve(objectKey);
+        Path target = resolve(objectKey);
         return Files.readAllBytes(target);
     }
 
     @Override
     public void delete(String objectKey) throws IOException {
-        Path target = rootPath.resolve(objectKey);
+        Path target = resolve(objectKey);
         Files.deleteIfExists(target);
+    }
+
+    /** Resolves a key inside the media root; absolute keys and ".." segments must not escape it. */
+    private Path resolve(String objectKey) {
+        Path target = rootPath.resolve(objectKey).normalize();
+        if (!target.startsWith(rootPath) || target.equals(rootPath)) {
+            throw new IllegalArgumentException("Invalid media object key");
+        }
+        return target;
     }
 }

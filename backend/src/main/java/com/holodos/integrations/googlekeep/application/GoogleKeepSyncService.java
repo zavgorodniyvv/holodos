@@ -1,5 +1,7 @@
 package com.holodos.integrations.googlekeep.application;
 
+import com.holodos.common.domain.ConflictException;
+import com.holodos.common.domain.ExternalServiceException;
 import com.holodos.common.infrastructure.CorrelationIdFilter;
 import com.holodos.integrations.googlekeep.domain.SyncBinding;
 import com.holodos.integrations.googlekeep.domain.SyncEvent;
@@ -17,10 +19,10 @@ import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.StringUtils;
 
 @Service
-@Transactional
 public class GoogleKeepSyncService {
     public static final String PROVIDER = "GOOGLE_KEEP";
     private static final Duration BASE_RETRY_DELAY = Duration.ofMinutes(5);
@@ -30,15 +32,19 @@ public class GoogleKeepSyncService {
     private final SyncEventRepository syncEventRepository;
     private final ShoppingListItemRepository shoppingListItemRepository;
     private final GoogleKeepClient googleKeepClient;
+    private final TransactionOperations transactions;
 
     public GoogleKeepSyncService(SyncBindingRepository syncBindingRepository, SyncEventRepository syncEventRepository,
-                                 ShoppingListItemRepository shoppingListItemRepository, GoogleKeepClient googleKeepClient) {
+                                 ShoppingListItemRepository shoppingListItemRepository, GoogleKeepClient googleKeepClient,
+                                 TransactionOperations transactions) {
         this.syncBindingRepository = syncBindingRepository;
         this.syncEventRepository = syncEventRepository;
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.googleKeepClient = googleKeepClient;
+        this.transactions = transactions;
     }
 
+    @Transactional
     public SyncBinding bind(String userKey, String remoteNoteId) {
         SyncBinding binding = syncBindingRepository.findByUserKeyAndProvider(userKey, PROVIDER).orElseGet(SyncBinding::new);
         binding.setUserKey(userKey);
@@ -53,42 +59,58 @@ public class GoogleKeepSyncService {
         return syncBindingRepository.findAll();
     }
 
+    /**
+     * The sync itself and the failure bookkeeping run in separate transactions: a failed sync rolls back
+     * everything it imported, while the failure count / retry time / FAILED event are still committed.
+     */
     public String syncNow(String userKey) {
-        SyncBinding binding = syncBindingRepository.findByUserKeyAndProvider(userKey, PROVIDER)
-            .orElseThrow(() -> new IllegalArgumentException("Google Keep binding not found"));
-        if (!binding.isEnabled()) {
-            throw new IllegalArgumentException("Google Keep sync is disabled");
-        }
-
-        if (binding.getNextRetryAt() != null && binding.getNextRetryAt().isAfter(OffsetDateTime.now())) {
-            throw new IllegalStateException("Sync retry scheduled after " + binding.getNextRetryAt());
-        }
-
+        transactions.executeWithoutResult(status -> checkSyncAllowed(loadBinding(userKey)));
         String idempotencyKey = "sync-" + userKey + "-" + UUID.randomUUID();
         try {
-            GoogleKeepClient.KeepRemoteState remoteState = googleKeepClient.fetchChecklist(binding.getRemoteNoteId());
-            applyRemoteState(remoteState);
-            binding.setLastRemoteEtag(remoteState.etag());
-            List<GoogleKeepClient.KeepChecklistItem> outboundItems = buildOutboundItems();
-            GoogleKeepClient.KeepSyncResult result = googleKeepClient.pushChecklist(binding.getRemoteNoteId(), outboundItems, binding.getLastRemoteEtag());
-
-            recordEvent(binding, idempotencyKey, result.success() ? "SUCCESS" : "FAILED", result.details());
-
-            if (result.success()) {
-                binding.setLastRemoteEtag(result.newEtag());
-                markSyncSuccess(binding);
-                return result.details();
-            }
-            handleFailure(binding, result.details());
-            return result.details();
-        } catch (Exception ex) {
-            handleFailure(binding, ex.getMessage());
-            recordEvent(binding, idempotencyKey, "FAILED", ex.getMessage());
-            throw new IllegalStateException("Google Keep sync failed", ex);
+            return transactions.execute(status -> doSync(userKey, idempotencyKey));
+        } catch (RuntimeException ex) {
+            String details = ex.getMessage();
+            transactions.executeWithoutResult(status -> {
+                SyncBinding binding = loadBinding(userKey);
+                handleFailure(binding, details);
+                recordEvent(binding, idempotencyKey, "FAILED", details);
+            });
+            throw ex instanceof ExternalServiceException ese ? ese : new ExternalServiceException("Google Keep sync failed", ex);
         }
     }
 
-    private void applyRemoteState(GoogleKeepClient.KeepRemoteState state) {
+    private String doSync(String userKey, String idempotencyKey) {
+        SyncBinding binding = loadBinding(userKey);
+        GoogleKeepClient.KeepRemoteState remoteState = googleKeepClient.fetchChecklist(binding.getRemoteNoteId());
+        applyRemoteState(remoteState, binding.getLastSyncedAt());
+        binding.setLastRemoteEtag(remoteState.etag());
+        List<GoogleKeepClient.KeepChecklistItem> outboundItems = buildOutboundItems();
+        GoogleKeepClient.KeepSyncResult result = googleKeepClient.pushChecklist(binding.getRemoteNoteId(), outboundItems, binding.getLastRemoteEtag());
+        if (!result.success()) {
+            // Throwing rolls back the items imported above, so a retry won't import them a second time
+            throw new ExternalServiceException(result.details());
+        }
+        recordEvent(binding, idempotencyKey, "SUCCESS", result.details());
+        binding.setLastRemoteEtag(result.newEtag());
+        markSyncSuccess(binding);
+        return result.details();
+    }
+
+    private SyncBinding loadBinding(String userKey) {
+        return syncBindingRepository.findByUserKeyAndProvider(userKey, PROVIDER)
+            .orElseThrow(() -> new IllegalArgumentException("Google Keep binding not found"));
+    }
+
+    private void checkSyncAllowed(SyncBinding binding) {
+        if (!binding.isEnabled()) {
+            throw new IllegalArgumentException("Google Keep sync is disabled");
+        }
+        if (binding.getNextRetryAt() != null && binding.getNextRetryAt().isAfter(OffsetDateTime.now())) {
+            throw new ConflictException("Sync retry scheduled after " + binding.getNextRetryAt());
+        }
+    }
+
+    private void applyRemoteState(GoogleKeepClient.KeepRemoteState state, OffsetDateTime lastSyncedAt) {
         if (state == null || state.items() == null) {
             return;
         }
@@ -100,7 +122,10 @@ public class GoogleKeepSyncService {
                         existing.setStatus(ShoppingItemStatus.COMPLETED);
                         existing.setCompletedAt(OffsetDateTime.now());
                         shoppingListItemRepository.save(existing);
-                    } else if (!item.checked() && existing.getStatus() == ShoppingItemStatus.COMPLETED) {
+                    } else if (!item.checked() && existing.getStatus() == ShoppingItemStatus.COMPLETED
+                        && completedBeforeLastSync(existing, lastSyncedAt)) {
+                        // Unchecked in Keep after we last pushed: the remote change is newer, reopen the item.
+                        // Items completed locally since the last sync win; the outbound push removes them from Keep.
                         existing.setStatus(ShoppingItemStatus.ACTIVE);
                         existing.setCompletedAt(null);
                         shoppingListItemRepository.save(existing);
@@ -116,6 +141,10 @@ public class GoogleKeepSyncService {
                 shoppingListItemRepository.save(newItem);
             }
         }
+    }
+
+    private static boolean completedBeforeLastSync(ShoppingListItem item, OffsetDateTime lastSyncedAt) {
+        return lastSyncedAt != null && item.getCompletedAt() != null && item.getCompletedAt().isBefore(lastSyncedAt);
     }
 
     private List<GoogleKeepClient.KeepChecklistItem> buildOutboundItems() {

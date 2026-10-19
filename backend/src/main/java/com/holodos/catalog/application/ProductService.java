@@ -84,7 +84,7 @@ public class ProductService {
         product.setDefaultUnit(unit);
         product.setDefaultStoragePlace(storagePlace);
         product.setDefaultStore(store);
-        product.setPhotoKey(request.photoKey());
+        // photoKey is owned by MediaService (photo upload/remove); a client-supplied key is ignored
         product.setDescription(request.description());
         product.setShelfLifeDays(request.shelfLifeDays());
         product.setMinimumQuantityThreshold(request.minimumQuantityThreshold());

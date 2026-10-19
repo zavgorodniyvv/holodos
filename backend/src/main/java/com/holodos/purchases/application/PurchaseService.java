@@ -4,6 +4,7 @@ import com.holodos.catalog.domain.StoragePlace;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
 import com.holodos.common.application.DomainEventPublisher;
 import com.holodos.common.application.events.OperationLogEvent;
+import com.holodos.common.domain.ConflictException;
 import com.holodos.inventory.domain.StockEntry;
 import com.holodos.inventory.domain.StockStatus;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
@@ -41,12 +42,19 @@ public class PurchaseService {
     public void processPurchase(ProcessPurchaseRequest request) {
         ShoppingListItem item = shoppingListItemRepository.findById(request.shoppingListItemId())
             .orElseThrow(() -> new IllegalArgumentException("Shopping item not found"));
+        if (item.getStatus() != ShoppingItemStatus.ACTIVE) {
+            // Protects against double taps / retried requests creating the same stock twice
+            throw new ConflictException("Shopping item is already completed");
+        }
         if (item.getProduct() == null) {
             throw new IllegalArgumentException("Shopping item must be linked to a product");
         }
 
         OffsetDateTime purchasedAt = request.purchasedAt() == null ? OffsetDateTime.now() : request.purchasedAt();
         StoragePlace storagePlace = resolveStorage(item, request.storagePlaceId());
+        if (storagePlace == null) {
+            throw new IllegalArgumentException("Storage place is required");
+        }
         OffsetDateTime expiresAt = request.expiresAt();
         if (expiresAt == null && item.getProduct().getShelfLifeDays() != null) {
             expiresAt = purchasedAt.plusDays(item.getProduct().getShelfLifeDays());

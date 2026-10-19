@@ -17,8 +17,20 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 2222
           script: |
+            set -e
             export PATH=$PATH:/snap/bin
             cd /home/slavco/holodos
             git pull https://${{ secrets.GH_PAT }}@github.com/zavgorodniyvv/holodos.git
             docker compose build --no-cache
             docker compose up -d
+            # Fail the deployment if the backend does not come up (e.g. a migration or startup error)
+            for i in $(seq 1 30); do
+              if curl -fsS http://localhost:8080/actuator/health | grep -q '"UP"'; then
+                echo "Backend is healthy"
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "Backend did not become healthy in time"
+            docker compose logs --tail=200 backend
+            exit 1

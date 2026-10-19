@@ -49,6 +49,9 @@ public class ProductPhotoController {
         headers.setContentType(MediaType.parseMediaType(payload.contentType()));
         headers.setCacheControl(CacheControl.noCache());
         headers.setContentDisposition(ContentDisposition.inline().filename("product-photo").build());
+        // Defense in depth: even if active content slips in, it cannot run scripts on the app origin
+        headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
+        headers.set("X-Content-Type-Options", "nosniff");
         return new ResponseEntity<>(payload.content(), headers, HttpStatus.OK);
     }
 

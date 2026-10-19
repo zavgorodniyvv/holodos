@@ -1,6 +1,7 @@
 package com.holodos.inventory.api;
 
 import com.holodos.inventory.domain.StockStatus;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -12,7 +13,7 @@ public final class InventoryDtos {
 
     public record AddStockRequest(
         @NotNull Long productId,
-        @NotNull @Positive BigDecimal quantity,
+        @NotNull @Positive @Digits(integer = 11, fraction = 3) BigDecimal quantity,
         @NotNull Long unitId,
         @NotNull Long storagePlaceId,
         OffsetDateTime addedAt,
@@ -22,18 +23,18 @@ public final class InventoryDtos {
     ) {}
 
     public record ConsumeStockRequest(
-        @NotNull @Positive BigDecimal quantity
+        @NotNull @Positive @Digits(integer = 11, fraction = 3) BigDecimal quantity
     ) {}
 
     public record MoveStockRequest(
         @NotNull Long toStoragePlaceId,
-        @NotNull @Positive BigDecimal quantity,
+        @NotNull @Positive @Digits(integer = 11, fraction = 3) BigDecimal quantity,
         String comment,
         @NotNull String username
     ) {}
 
     public record AdjustStockRequest(
-        @NotNull BigDecimal delta,
+        @NotNull @Digits(integer = 11, fraction = 3) BigDecimal delta,
         @NotBlank String reason,
         String comment,
         @NotNull String username,

@@ -37,7 +37,8 @@ public class GoogleTasksOAuthService {
         this.restTemplate = restTemplate;
     }
 
-    public String buildAuthUrl(String userKey) {
+    /** @param state an unguessable, session-bound value; the controller maps it back to the user key on callback */
+    public String buildAuthUrl(String state) {
         return UriComponentsBuilder.fromUriString(AUTH_ENDPOINT)
                 .queryParam("client_id", properties.clientId())
                 .queryParam("redirect_uri", properties.redirectUri())
@@ -45,7 +46,7 @@ public class GoogleTasksOAuthService {
                 .queryParam("scope", TASKS_SCOPE)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
-                .queryParam("state", userKey)
+                .queryParam("state", state)
                 .toUriString();
     }
 
@@ -63,7 +64,10 @@ public class GoogleTasksOAuthService {
                 .orElseGet(GoogleTasksBinding::new);
         binding.setUserKey(userKey);
         binding.setAccessToken(tokenResponse.access_token());
-        binding.setRefreshToken(tokenResponse.refresh_token());
+        if (tokenResponse.refresh_token() != null) {
+            // Google may omit it on re-authorization; never replace a working refresh token with null
+            binding.setRefreshToken(tokenResponse.refresh_token());
+        }
         binding.setTokenExpiresAt(OffsetDateTime.now().plusSeconds(tokenResponse.expires_in()));
         binding.setEnabled(true);
         bindingRepository.save(binding);

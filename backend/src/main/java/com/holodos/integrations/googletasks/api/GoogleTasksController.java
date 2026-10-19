@@ -3,11 +3,16 @@ package com.holodos.integrations.googletasks.api;
 import com.holodos.integrations.googletasks.application.GoogleTasksOAuthService;
 import com.holodos.integrations.googletasks.application.GoogleTasksSyncService;
 import com.holodos.integrations.googletasks.domain.GoogleTasksBinding;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
+import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/integrations/google-tasks")
 public class GoogleTasksController {
+    private static final String OAUTH_STATES_ATTRIBUTE = GoogleTasksController.class.getName() + ".oauthStates";
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final GoogleTasksSyncService syncService;
     private final GoogleTasksOAuthService oAuthService;
@@ -30,13 +37,21 @@ public class GoogleTasksController {
     }
 
     @GetMapping("/auth-url")
-    public AuthUrlResponse getAuthUrl(@RequestParam String userKey) {
-        return new AuthUrlResponse(oAuthService.buildAuthUrl(userKey));
+    public AuthUrlResponse getAuthUrl(@RequestParam String userKey, HttpSession session) {
+        // OAuth "state" is a random nonce bound to this session (CSRF protection): a callback carrying
+        // someone else's code cannot be attached to our user key
+        String state = generateState();
+        pendingStates(session).put(state, userKey);
+        return new AuthUrlResponse(oAuthService.buildAuthUrl(state));
     }
 
     @GetMapping("/oauth2/callback")
-    public ResponseEntity<Void> oauthCallback(@RequestParam String code, @RequestParam String state) {
-        oAuthService.handleCallback(code, state);
+    public ResponseEntity<Void> oauthCallback(@RequestParam String code, @RequestParam String state, HttpSession session) {
+        String userKey = pendingStates(session).remove(state);
+        if (userKey == null) {
+            throw new IllegalArgumentException("Unknown or expired OAuth state, start the authorization again");
+        }
+        oAuthService.handleCallback(code, userKey);
         return ResponseEntity.status(302)
                 .location(URI.create("/admin/index.html?google-tasks=connected"))
                 .build();
@@ -66,6 +81,24 @@ public class GoogleTasksController {
                 binding.getFailureCount(),
                 binding.getLastErrorMessage()
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> pendingStates(HttpSession session) {
+        synchronized (session) {
+            Object states = session.getAttribute(OAUTH_STATES_ATTRIBUTE);
+            if (states == null) {
+                states = new ConcurrentHashMap<String, String>();
+                session.setAttribute(OAUTH_STATES_ATTRIBUTE, states);
+            }
+            return (Map<String, String>) states;
+        }
+    }
+
+    private static String generateState() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     public record AuthUrlResponse(String authUrl) {}

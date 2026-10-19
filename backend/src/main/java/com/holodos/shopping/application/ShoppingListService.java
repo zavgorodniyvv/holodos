@@ -83,33 +83,30 @@ public class ShoppingListService {
             Map.of("completed", true)));
     }
 
+    /**
+     * Adds the product to the shopping list unless an active entry for it already exists.
+     * An existing entry is left as is: repeated low-stock events must not keep growing its quantity.
+     */
     public void autoAddIfMissing(Product product, BigDecimal quantity) {
         if (!product.isAutoAddShopping()) {
             return;
         }
-        ShoppingListItem existing = shoppingListItemRepository.findFirstByProductIdAndStatus(product.getId(), ShoppingItemStatus.ACTIVE)
-            .orElse(null);
-        boolean merged = false;
-        ShoppingListItem item;
-        if (existing != null) {
-            BigDecimal current = existing.getQuantity() == null ? BigDecimal.ZERO : existing.getQuantity();
-            existing.setQuantity(current.add(quantity));
-            item = existing;
-            merged = true;
-        } else {
-            item = new ShoppingListItem();
-            item.setProduct(product);
-            item.setTitle(product.getName());
-            item.setQuantity(quantity);
-            item.setUnit(product.getDefaultUnit());
-            item.setStore(product.getDefaultStore());
-            item.setSource(ShoppingItemSource.AUTO_REPLENISHMENT);
-            item.setStatus(ShoppingItemStatus.ACTIVE);
-            item.setSortOrder(0);
+        shoppingListItemRepository.lockProductForReplenishment(product.getId());
+        if (shoppingListItemRepository.findFirstByProductIdAndStatus(product.getId(), ShoppingItemStatus.ACTIVE).isPresent()) {
+            return;
         }
+        ShoppingListItem item = new ShoppingListItem();
+        item.setProduct(product);
+        item.setTitle(product.getName());
+        item.setQuantity(quantity);
+        item.setUnit(product.getDefaultUnit());
+        item.setStore(product.getDefaultStore());
+        item.setSource(ShoppingItemSource.AUTO_REPLENISHMENT);
+        item.setStatus(ShoppingItemStatus.ACTIVE);
+        item.setSortOrder(0);
         ShoppingListItem saved = shoppingListItemRepository.save(item);
         domainEventPublisher.publish(new OperationLogEvent("SHOPPING_AUTO_ADD", "ShoppingListItem", String.valueOf(saved.getId()),
-            Map.of("productId", product.getId(), "quantity", quantity, "merged", merged)));
+            Map.of("productId", product.getId(), "quantity", quantity)));
     }
 
     private void apply(ShoppingListItem item, ShoppingItemUpsertRequest request) {
