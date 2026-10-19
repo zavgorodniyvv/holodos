@@ -4,95 +4,85 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Holodos** — mobile-first home inventory and shopping management platform.
+**Holodos** — home inventory and shopping management app.
 
-- `backend/` — Java 25 + Spring Boot 4 modular monolith REST API
-- `mobile/` — Flutter (Dart) offline-first client with SQLite + sync
-- `docs/` — Architecture and design documentation
+- `backend/` — Java 21 + Spring Boot 4 (4.0.4) modular monolith REST API; also serves the web UIs
+- `docs/` — architecture notes (`architecture.md` is the original design proposal and partly aspirational — trust the code over it)
+- `scripts/` — `export-db.sh` / `import-db.sh` for dumping/restoring the Docker Compose Postgres
 
-## Running the Stack
+The Flutter `mobile/` client was **removed** (commit 095d1b7) because the target device is an iPad 3 (iOS 9.3.5). README and `docs/` still mention Flutter; ignore those parts.
 
-```bash
-# 1. Start PostgreSQL
-docker compose up -d
-
-# 2. Start backend (port 8080)
-cd backend && mvn spring-boot:run
-
-# 3. Run mobile app
-cd mobile && flutter run
-```
-
-Swagger UI: `http://localhost:8080/swagger-ui.html`
-
-## Backend Commands
+## Commands
 
 ```bash
+docker compose up -d postgres          # PostgreSQL only (local dev)
+docker compose up -d                   # Postgres + backend container
+
 cd backend
-
-mvn clean install                                    # Full build
-mvn test                                             # All tests
-mvn test -Dtest=ProductServiceTest                   # Single test class
-mvn test -Dtest=ProductServiceTest#methodName        # Single test method
+mvn spring-boot:run                    # Start backend on :8080
+mvn clean install                      # Full build
+mvn test                               # All tests
+mvn test -Dtest=ProductServiceTest                # Single class
+mvn test -Dtest=ProductServiceTest#methodName     # Single method
 ```
 
-## Mobile Commands
+Maven (`pom.xml`) is the real build — the Dockerfile uses it. `build.gradle.kts` is stale (Boot milestone, missing deps) and unused.
 
-```bash
-cd mobile
+Swagger UI: `http://localhost:8080/swagger-ui.html`, OpenAPI JSON at `/api/docs`.
 
-flutter pub get    # Install dependencies
-flutter run        # Run app
-flutter test       # Run tests
-flutter analyze    # Lint
-```
+## Web Clients (no build step)
+
+Plain static HTML in `backend/src/main/resources/static/`, served by Spring Boot:
+- `app/index.html` — main touch UI for iPad 3. Single file, no external dependencies (hand-written CSS, inline SVG icon sprite), **ES5 only**: no `let`/`const`, arrow functions, template literals, `fetch` or other features Safari 9 can't run. HTTP goes through `XMLHttpRequest`. CSS likewise: no grid, flex `gap`, CSS variables or `vh` layout; keep `-webkit-` flex prefixes. Icons are `<svg><use xlink:href="#i-…">` (bare `href` doesn't work in Safari 9); avoid emoji newer than iOS 9 (e.g. 🧊, 🥤 render as boxes).
+- `admin/index.html` — catalog CRUD admin panel. Same constraints: single file, ES5 + XHR, no CDN.
+
+Both call the REST API at relative `/api/...` using the session cookie.
+
+## Security
+
+Everything except Swagger and `/actuator/health` requires Google OAuth2 login (`SecurityConfig`). Unauthenticated `/api/**` requests get 401 instead of a redirect. Login is restricted to the whitelist `holodos.security.allowed-emails` in `application.yml` (enforced in `HolodosOAuth2UserService`, which also upserts the `users` table). Requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` env vars. CSRF is disabled; CORS origins come from `HOLODOS_CORS_ALLOWED_ORIGINS`.
 
 ## Backend Architecture
 
-Each feature module follows a strict 4-layer structure:
+Each module under `com.holodos.<module>` uses `api` / `application` / `domain` / `infrastructure` packages.
 
-```
-com.holodos.<module>/
-├── api/            # REST controllers + request/response DTOs (records)
-├── application/    # Services, use cases, orchestration
-├── domain/         # Entities, repository interfaces, domain rules
-└── infrastructure/ # JPA repositories, external adapters, config
-```
+**Modules:** `common`, `catalog`, `inventory`, `shopping`, `purchases`, `notifications`, `reports`, `export`, `media`, `settings`, `integrations.googlekeep`, `integrations.googletasks`
 
-Dependency rule: `api` → `application` → `domain` ← `infrastructure`
-
-**Modules:** `common`, `catalog`, `inventory`, `shopping`, `purchases`, `integrations.googlekeep`, `notifications`, `reports`, `export`, `media`, `settings`
+Actual conventions (differ from the textbook layering):
+- Repositories are Spring Data `JpaRepository` interfaces living in `infrastructure/`, injected directly into services.
+- Modules call each other directly — services import other modules' entities and repositories (e.g. `PurchaseService` uses `StockEntryRepository` and `ShoppingListItemRepository`; `InventoryService` calls `ShoppingListService` for auto-replenishment).
+- DTOs are records grouped in one `*Dtos.java` file per module's `api/` package; services often accept/return these DTOs.
 
 ### Cross-Cutting (`common`)
-- `DomainEventPublisher` + `OperationLogEventListener` — all mutations emit domain events logged to `operation_log`
-- `CorrelationIdFilter` — injects `X-Correlation-ID` on every request
-- `GlobalExceptionHandler` — standardized `ErrorResponse` format
-- `BaseEntity` — JPA mapped superclass with `id`, `createdAt`, `updatedAt`, `version` (optimistic locking)
-- `SecurityConfig` — Spring Security + OAuth2 Client (configured in `backend/src/main/java/com/holodos/common/infrastructure/`)
+- Mutations publish `OperationLogEvent` via `DomainEventPublisher`; `OperationLogEventListener` writes to `operation_log` **after commit** (`@TransactionalEventListener`).
+- `CorrelationIdFilter` (`X-Correlation-ID`), `GlobalExceptionHandler` → `ErrorResponse`, `NotFoundException` → 404.
+- `BaseEntity` — `id`, `createdAt`, `updatedAt`, `version` (optimistic locking).
+- Caffeine cache for catalog dictionaries (cache names in `application.yml`).
 
 ### Key Domain Rules
-- `StockEntry` = concrete batch; `Product` = template
-- Movements cannot produce negative stock
-- Shopping list auto-replenishment deduplicates active entries
-- Google Keep sync is idempotent with circular-update guards
-- `StubGoogleKeepClient` is the default; `HttpGoogleKeepClient` activates via `holodos.integrations.google-keep.enabled=true`
+- `Product` = template; `StockEntry` = concrete batch. Storage places are flat (no hierarchy).
+- Movements cannot produce negative stock.
+- Shopping-list auto-replenishment deduplicates active entries.
+- Buying a shopping item (`purchases`) creates stock entries.
+
+### Pluggable Adapters
+- Google Keep: `StubGoogleKeepClient` by default; `HttpGoogleKeepClient` when `holodos.integrations.google-keep.enabled=true`. Sync is idempotent with circular-update guards.
+- Google Tasks: real HTTP client, per-user OAuth keyed by `userKey`; setup steps in README.
+- Media: filesystem storage by default (`HOLODOS_MEDIA_PATH`), S3/MinIO when `holodos.media.provider=S3` (the commented S3 example in `application.yml` sits under `integrations` by mistake; the real prefix is `holodos.media`).
+
+### Schedulers (`@EnableScheduling`)
+- Google Tasks sync — every 5 min
+- Google Keep retry — every 20 min
+- Inventory expiry/low-stock notifications — every 30 min
 
 ### Database
-- PostgreSQL 16 via Docker; credentials `holodos/holodos`, db `holodos`
-- Flyway manages schema: `backend/src/main/resources/db/migration/` (V1–V7)
-- `spring.jpa.hibernate.ddl-auto=validate` — schema is never auto-created
+- PostgreSQL 16; credentials `holodos/holodos`, db `holodos`.
+- Flyway migrations in `backend/src/main/resources/db/migration/` (currently V1–V10). Add a new `V<n+1>__*.sql`; never edit applied ones.
+- `ddl-auto=validate` — entity changes require a matching migration or startup fails.
 
-### Testing Pattern
-Unit tests use `@ExtendWith(MockitoExtension.class)` with constructor-injected services. Testcontainers (PostgreSQL) is available for integration tests. Tests live at `backend/src/test/java/com/holodos/<module>/application/`.
+### Testing
+Unit tests only: `@ExtendWith(MockitoExtension.class)` with mocked repositories, under `backend/src/test/java/com/holodos/<module>/`. Testcontainers is on the classpath but no integration tests use it yet.
 
-## Flutter Architecture
+## Deployment
 
-State management via Riverpod. Offline-first: SQLite (`sqflite`) is the source of truth, synced to backend via Dio. Code generation used for models (`freezed`, `json_serializable`).
-
-```
-mobile/lib/
-├── core/        # Config, network & DB setup
-├── features/    # dashboard, inventory, shopping (feature slices)
-├── data/        # Dio client, repositories, Freezed models
-└── shared/      # Reusable widgets
-```
+Every push to `main` triggers `.github/workflows/deploy.yml`: SSH to the VPS, `git pull`, `docker compose build --no-cache && docker compose up -d`. Merging to `main` = deploying to production. Env vars for the compose stack are listed in `.env.example`.
