@@ -1,6 +1,7 @@
 package com.holodos.integrations.googletasks.infrastructure;
 
 import com.holodos.integrations.googletasks.application.GoogleTasksClient;
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,11 +11,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class HttpGoogleTasksClient implements GoogleTasksClient {
 
     private static final Logger log = LoggerFactory.getLogger(HttpGoogleTasksClient.class);
     private static final String BASE_URL = "https://tasks.googleapis.com/tasks/v1";
+    /** Safety net against a misbehaving API returning tokens forever. */
+    private static final int MAX_PAGES = 50;
 
     private final RestTemplate restTemplate;
 
@@ -43,23 +47,43 @@ public class HttpGoogleTasksClient implements GoogleTasksClient {
 
     @Override
     public List<RemoteTask> listTasks(String taskListId, String accessToken) {
-        String url = BASE_URL + "/lists/" + taskListId + "/tasks?showCompleted=true&showHidden=false";
-        try {
-            TaskListItemsResponse response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    new HttpEntity<>(authHeaders(accessToken)),
-                    TaskListItemsResponse.class
-            ).getBody();
-            if (response == null || response.items() == null) {
-                return List.of();
+        // showHidden: tasks completed in the Google Tasks app become "hidden"; we still need to see them.
+        // The API pages results (max 100 per page); follow nextPageToken so later pages aren't treated as missing.
+        List<RemoteTask> result = new ArrayList<>();
+        String pageToken = null;
+        int pages = 0;
+        do {
+            UriComponentsBuilder uri = UriComponentsBuilder.fromUriString(BASE_URL + "/lists/{listId}/tasks")
+                    .queryParam("showCompleted", true)
+                    .queryParam("showHidden", true)
+                    .queryParam("maxResults", 100);
+            if (pageToken != null) {
+                uri.queryParam("pageToken", pageToken);
             }
-            return response.items().stream()
-                    .map(t -> new RemoteTask(t.id(), t.title(), t.notes(), "completed".equals(t.status())))
-                    .toList();
-        } catch (RestClientException ex) {
-            throw new IllegalStateException("Failed to list Google Tasks tasks: " + ex.getMessage(), ex);
-        }
+            TaskListItemsResponse response;
+            try {
+                response = restTemplate.exchange(
+                        uri.buildAndExpand(taskListId).encode().toUri(),
+                        HttpMethod.GET,
+                        new HttpEntity<>(authHeaders(accessToken)),
+                        TaskListItemsResponse.class
+                ).getBody();
+            } catch (RestClientException ex) {
+                throw new IllegalStateException("Failed to list Google Tasks tasks: " + ex.getMessage(), ex);
+            }
+            if (response == null) {
+                break;
+            }
+            if (response.items() != null) {
+                response.items().forEach(t -> result.add(new RemoteTask(t.id(), t.title(), t.notes(), "completed".equals(t.status()))));
+            }
+            pageToken = response.nextPageToken();
+            if (pageToken != null && ++pages >= MAX_PAGES) {
+                // A partial list would make the sync think tasks are missing and create duplicates
+                throw new IllegalStateException("Google Tasks list is too large (more than " + MAX_PAGES + " pages)");
+            }
+        } while (pageToken != null);
+        return result;
     }
 
     @Override
@@ -124,5 +148,5 @@ public class HttpGoogleTasksClient implements GoogleTasksClient {
     private record TaskPayload(String title, String notes) {}
     private record StatusPayload(String status) {}
     private record TaskResponse(String id, String title, String notes, String status) {}
-    private record TaskListItemsResponse(List<TaskResponse> items) {}
+    private record TaskListItemsResponse(List<TaskResponse> items, String nextPageToken) {}
 }

@@ -1,6 +1,7 @@
 package com.holodos.inventory.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -23,6 +24,7 @@ import com.holodos.inventory.domain.StockStatus;
 import com.holodos.inventory.infrastructure.InventoryAdjustmentRepository;
 import com.holodos.inventory.infrastructure.InventoryMovementRepository;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
+import com.holodos.notifications.application.NotificationService;
 import com.holodos.shopping.application.ShoppingListService;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -44,13 +46,14 @@ class InventoryServiceTest {
     @Mock StoragePlaceRepository storagePlaceRepository;
     @Mock ShoppingListService shoppingListService;
     @Mock DomainEventPublisher domainEventPublisher;
+    @Mock NotificationService notificationService;
 
     InventoryService inventoryService;
 
     @BeforeEach
     void setUp() {
         inventoryService = new InventoryService(stockEntryRepository, movementRepository, productRepository, unitRepository,
-            storagePlaceRepository, shoppingListService, domainEventPublisher, adjustmentRepository);
+            storagePlaceRepository, shoppingListService, domainEventPublisher, adjustmentRepository, notificationService);
     }
 
     @Test
@@ -146,5 +149,117 @@ class InventoryServiceTest {
         ArgumentCaptor<OperationLogEvent> eventCaptor = ArgumentCaptor.forClass(OperationLogEvent.class);
         verify(domainEventPublisher).publish(eventCaptor.capture());
         assertEquals("STOCK_ADJUST", eventCaptor.getValue().eventType());
+    }
+
+    private StockEntry availableEntry(Product product, BigDecimal quantity, long id) {
+        StockEntry entry = new StockEntry();
+        entry.setProduct(product);
+        entry.setUnit(product.getDefaultUnit());
+        entry.setStoragePlace(new StoragePlace());
+        entry.setQuantity(quantity);
+        entry.setStatus(StockStatus.AVAILABLE);
+        ReflectionTestUtils.setField(entry, "id", id);
+        return entry;
+    }
+
+    private Product autoAddProduct(BigDecimal threshold) {
+        Product product = new Product();
+        ReflectionTestUtils.setField(product, "id", 7L);
+        product.setName("Milk");
+        product.setAutoAddShopping(true);
+        product.setMinimumQuantityThreshold(threshold);
+        product.setReorderQuantity(BigDecimal.valueOf(2));
+        UnitOfMeasure liter = new UnitOfMeasure();
+        ReflectionTestUtils.setField(liter, "id", 3L);
+        product.setDefaultUnit(liter);
+        return product;
+    }
+
+    @Test
+    void consumeMoreThanAvailableIsRejected() {
+        StockEntry entry = availableEntry(autoAddProduct(null), BigDecimal.valueOf(2), 10L);
+        when(stockEntryRepository.findById(10L)).thenReturn(Optional.of(entry));
+
+        assertThrows(IllegalArgumentException.class,
+            () -> inventoryService.consume(10L, new ConsumeStockRequest(BigDecimal.TEN)));
+        assertEquals(BigDecimal.valueOf(2), entry.getQuantity());
+        verify(stockEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void emptyingOneBatchDoesNotReplenishWhileOtherBatchesCoverThreshold() {
+        Product product = autoAddProduct(BigDecimal.ONE);
+        StockEntry entry = availableEntry(product, BigDecimal.ONE, 10L);
+        when(stockEntryRepository.findById(10L)).thenReturn(Optional.of(entry));
+        when(stockEntryRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(stockEntryRepository.sumQuantityByProductAndStatusExcluding(7L, StockStatus.AVAILABLE, 10L))
+            .thenReturn(BigDecimal.valueOf(5));
+        when(stockEntryRepository.sumQuantityByProductStatusAndUnitExcluding(7L, StockStatus.AVAILABLE, 3L, 10L))
+            .thenReturn(BigDecimal.valueOf(5));
+
+        inventoryService.consume(10L, new ConsumeStockRequest(BigDecimal.ONE));
+
+        verify(shoppingListService, never()).autoAddIfMissing(any(), any());
+        verify(notificationService, never()).notifyOutOfStock(any(), any());
+    }
+
+    @Test
+    void replenishesWhenTotalStockDropsToThreshold() {
+        Product product = autoAddProduct(BigDecimal.valueOf(2));
+        StockEntry entry = availableEntry(product, BigDecimal.valueOf(3), 10L);
+        when(stockEntryRepository.findById(10L)).thenReturn(Optional.of(entry));
+        when(stockEntryRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(stockEntryRepository.sumQuantityByProductAndStatusExcluding(7L, StockStatus.AVAILABLE, 10L))
+            .thenReturn(BigDecimal.ONE);
+        when(stockEntryRepository.sumQuantityByProductStatusAndUnitExcluding(7L, StockStatus.AVAILABLE, 3L, 10L))
+            .thenReturn(BigDecimal.ONE);
+
+        inventoryService.consume(10L, new ConsumeStockRequest(BigDecimal.valueOf(2)));
+
+        verify(shoppingListService).autoAddIfMissing(product, BigDecimal.valueOf(2));
+        verify(notificationService, never()).notifyOutOfStock(any(), any());
+    }
+
+    @Test
+    void discardOfLastBatchNotifiesOutOfStockAndReplenishes() {
+        Product product = autoAddProduct(null);
+        StockEntry entry = availableEntry(product, BigDecimal.ONE, 10L);
+        when(stockEntryRepository.findById(10L)).thenReturn(Optional.of(entry));
+        when(stockEntryRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(stockEntryRepository.sumQuantityByProductAndStatusExcluding(7L, StockStatus.AVAILABLE, 10L))
+            .thenReturn(BigDecimal.ZERO);
+
+        var response = inventoryService.discard(10L);
+
+        assertEquals(StockStatus.DISCARDED, response.status());
+        verify(notificationService).notifyOutOfStock("Milk", 10L);
+        verify(shoppingListService).autoAddIfMissing(product, BigDecimal.valueOf(2));
+    }
+
+    @Test
+    void discardOfAlreadyConsumedBatchIsRejected() {
+        StockEntry entry = availableEntry(autoAddProduct(null), BigDecimal.ZERO, 10L);
+        entry.setStatus(StockStatus.CONSUMED);
+        when(stockEntryRepository.findById(10L)).thenReturn(Optional.of(entry));
+
+        assertThrows(IllegalArgumentException.class, () -> inventoryService.discard(10L));
+        verify(stockEntryRepository, never()).save(any());
+    }
+
+    @Test
+    void batchesInOtherUnitsAreNotComparedWithThreshold() {
+        Product product = autoAddProduct(BigDecimal.valueOf(500));
+        StockEntry entryInPacks = availableEntry(product, BigDecimal.valueOf(3), 10L);
+        UnitOfMeasure pack = new UnitOfMeasure();
+        ReflectionTestUtils.setField(pack, "id", 9L);
+        entryInPacks.setUnit(pack); // threshold is "500" in the default unit, the batch is counted in packs
+        when(stockEntryRepository.findById(10L)).thenReturn(Optional.of(entryInPacks));
+        when(stockEntryRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(stockEntryRepository.sumQuantityByProductAndStatusExcluding(7L, StockStatus.AVAILABLE, 10L))
+            .thenReturn(BigDecimal.ZERO);
+
+        inventoryService.consume(10L, new ConsumeStockRequest(BigDecimal.ONE));
+
+        verify(shoppingListService, never()).autoAddIfMissing(any(), any());
     }
 }

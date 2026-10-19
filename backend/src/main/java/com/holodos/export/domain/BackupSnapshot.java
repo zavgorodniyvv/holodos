@@ -12,7 +12,9 @@ public record BackupSnapshot(
     List<CategoryItem> categories,
     List<StoreItem> stores,
     List<ProductItem> products,
-    List<ShoppingItem> shoppingItems
+    List<ShoppingItem> shoppingItems,
+    /** Available stock. Absent (null) in backups made before it was added. */
+    List<StockItem> stockEntries
 ) {
     public record StoragePlaceItem(String name, String description, String icon, String color, Integer sortOrder, Boolean active) {}
     public record UnitItem(String code, String name, String shortName, UnitType unitType, Boolean active) {}
@@ -44,6 +46,20 @@ public record BackupSnapshot(
         String status,
         String source,
         String comment,
-        Integer sortOrder
+        Integer sortOrder,
+        /** Links the item back to its product so it can be purchased after restore; null for free-text items. */
+        String productName
+    ) {}
+
+    public record StockItem(
+        String productName,
+        BigDecimal quantity,
+        String unitCode,
+        String storagePlaceName,
+        OffsetDateTime addedAt,
+        OffsetDateTime purchasedAt,
+        OffsetDateTime expiresAt,
+        OffsetDateTime openedAt,
+        String comment
     ) {}
 }

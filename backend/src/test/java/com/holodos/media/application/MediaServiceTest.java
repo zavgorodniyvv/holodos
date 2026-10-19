@@ -3,7 +3,9 @@ package com.holodos.media.application;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,5 +82,30 @@ class MediaServiceTest {
         var payload = mediaService.getProductPhoto(10L);
         assertEquals("image/jpeg", payload.contentType());
         assertArrayEquals(new byte[] {4, 5}, payload.content());
+    }
+
+    @Test
+    void svgUploadIsRejected() throws IOException {
+        Product product = new Product();
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        MockMultipartFile svg = new MockMultipartFile("file", "x.svg", "image/svg+xml",
+            "<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>".getBytes());
+
+        assertThrows(IllegalArgumentException.class, () -> mediaService.uploadProductPhoto(10L, svg));
+        verify(mediaStorageGateway, never()).store(any(), any());
+    }
+
+    @Test
+    void legacySvgIsServedAsOpaqueBinary() throws IOException {
+        Product product = new Product();
+        product.setPhotoKey("products/10/old.svg");
+        MediaObject media = new MediaObject();
+        media.setObjectKey("products/10/old.svg");
+        media.setContentType("image/svg+xml");
+        when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(mediaObjectRepository.findByObjectKey("products/10/old.svg")).thenReturn(Optional.of(media));
+        when(mediaStorageGateway.read("products/10/old.svg")).thenReturn(new byte[] {1});
+
+        assertEquals("application/octet-stream", mediaService.getProductPhoto(10L).contentType());
     }
 }

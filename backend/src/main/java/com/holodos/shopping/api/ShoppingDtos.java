@@ -2,6 +2,7 @@ package com.holodos.shopping.api;
 
 import com.holodos.shopping.domain.ShoppingItemSource;
 import com.holodos.shopping.domain.ShoppingItemStatus;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -14,7 +15,7 @@ public final class ShoppingDtos {
     public record ShoppingItemUpsertRequest(
         Long productId,
         @NotBlank String title,
-        @NotNull @Positive BigDecimal quantity,
+        @NotNull @Positive @Digits(integer = 11, fraction = 3) BigDecimal quantity,
         Long unitId,
         Long storeId,
         @NotNull ShoppingItemSource source,

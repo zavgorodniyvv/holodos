@@ -22,6 +22,16 @@ public class UserSettingsService {
         });
     }
 
+    /** Read-only variant: returns defaults without persisting them (safe inside read-only transactions). */
+    @Transactional(readOnly = true)
+    public UserSettings getOrDefault(String userKey) {
+        return userSettingsRepository.findByUserKey(userKey).orElseGet(() -> {
+            UserSettings settings = new UserSettings();
+            settings.setUserKey(userKey);
+            return settings;
+        });
+    }
+
     public UserSettings upsert(UserSettings updated) {
         UserSettings settings = getOrCreate(updated.getUserKey());
         settings.setExpiryDaysBeforeNotify(updated.getExpiryDaysBeforeNotify());

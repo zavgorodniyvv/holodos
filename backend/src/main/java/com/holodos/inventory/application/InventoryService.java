@@ -20,10 +20,12 @@ import com.holodos.inventory.domain.StockStatus;
 import com.holodos.inventory.infrastructure.InventoryAdjustmentRepository;
 import com.holodos.inventory.infrastructure.InventoryMovementRepository;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
+import com.holodos.notifications.application.NotificationService;
 import com.holodos.shopping.application.ShoppingListService;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,11 +43,13 @@ public class InventoryService {
     private final ShoppingListService shoppingListService;
     private final DomainEventPublisher domainEventPublisher;
     private final InventoryAdjustmentRepository adjustmentRepository;
+    private final NotificationService notificationService;
 
     public InventoryService(StockEntryRepository stockEntryRepository, InventoryMovementRepository movementRepository,
                             ProductRepository productRepository, UnitRepository unitRepository,
                             StoragePlaceRepository storagePlaceRepository, ShoppingListService shoppingListService,
-                            DomainEventPublisher domainEventPublisher, InventoryAdjustmentRepository adjustmentRepository) {
+                            DomainEventPublisher domainEventPublisher, InventoryAdjustmentRepository adjustmentRepository,
+                            NotificationService notificationService) {
         this.stockEntryRepository = stockEntryRepository;
         this.movementRepository = movementRepository;
         this.productRepository = productRepository;
@@ -54,6 +58,7 @@ public class InventoryService {
         this.shoppingListService = shoppingListService;
         this.domainEventPublisher = domainEventPublisher;
         this.adjustmentRepository = adjustmentRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -94,15 +99,16 @@ public class InventoryService {
         if (entry.getStatus() != StockStatus.AVAILABLE) {
             throw new IllegalArgumentException("Stock entry is not available");
         }
+        if (request.quantity().compareTo(entry.getQuantity()) > 0) {
+            throw new IllegalArgumentException("Cannot consume more than available (" + entry.getQuantity().stripTrailingZeros().toPlainString() + ")");
+        }
         BigDecimal after = entry.getQuantity().subtract(request.quantity());
-        entry.setQuantity(after.max(BigDecimal.ZERO));
-        if (after.compareTo(BigDecimal.ZERO) <= 0) {
+        entry.setQuantity(after);
+        if (after.signum() == 0) {
             entry.setStatus(StockStatus.CONSUMED);
-            maybeRequestAutoReplenishment(entry, BigDecimal.ZERO);
-        } else {
-            maybeRequestAutoReplenishment(entry, after);
         }
         StockEntry saved = stockEntryRepository.save(entry);
+        afterStockDecrease(saved, after);
         domainEventPublisher.publish(new OperationLogEvent("STOCK_CONSUME", "StockEntry", String.valueOf(saved.getId()),
             Map.of("consumed", request.quantity(), "remaining", saved.getQuantity())));
         return map(saved);
@@ -110,8 +116,12 @@ public class InventoryService {
 
     public StockEntryResponse discard(Long stockEntryId) {
         StockEntry entry = stockEntryRepository.findById(stockEntryId).orElseThrow(() -> new IllegalArgumentException("Stock entry not found"));
+        if (entry.getStatus() != StockStatus.AVAILABLE) {
+            throw new IllegalArgumentException("Only available stock can be discarded");
+        }
         entry.setStatus(StockStatus.DISCARDED);
         StockEntry saved = stockEntryRepository.save(entry);
+        afterStockDecrease(saved, BigDecimal.ZERO);
         domainEventPublisher.publish(new OperationLogEvent("STOCK_DISCARD", "StockEntry", String.valueOf(saved.getId()),
             Map.of("status", saved.getStatus().name())));
         return map(saved);
@@ -196,7 +206,7 @@ public class InventoryService {
         adjustmentRepository.save(adjustment);
 
         if (request.delta().signum() < 0) {
-            maybeRequestAutoReplenishment(saved, newQuantity);
+            afterStockDecrease(saved, newQuantity);
         }
 
         domainEventPublisher.publish(new OperationLogEvent("STOCK_ADJUST", "StockEntry", String.valueOf(saved.getId()),
@@ -209,19 +219,41 @@ public class InventoryService {
             e.getAddedAt(), e.getPurchasedAt(), e.getExpiresAt(), e.getComment(), e.getStatus(), e.getCreatedAt(), e.getUpdatedAt(), e.getVersion());
     }
 
-    private void maybeRequestAutoReplenishment(StockEntry entry, BigDecimal remainingQuantity) {
+    /**
+     * Reacts to a batch losing quantity. Decisions use the product's whole available stock, not the single batch:
+     * emptying one pack of milk while another one is in the fridge is not "running out".
+     * The minimum threshold is expressed in the product's default unit, so only batches in that unit are summed
+     * for it (quantities in different units cannot be added up).
+     */
+    private void afterStockDecrease(StockEntry entry, BigDecimal remainingInEntry) {
         Product product = entry.getProduct();
+        BigDecimal totalAnyUnit = orZero(stockEntryRepository.sumQuantityByProductAndStatusExcluding(
+            product.getId(), StockStatus.AVAILABLE, entry.getId())).add(remainingInEntry);
+        boolean outOfStock = totalAnyUnit.signum() <= 0;
+
+        if (outOfStock) {
+            notificationService.notifyOutOfStock(product.getName(), entry.getId());
+        }
         if (!product.isAutoAddShopping()) {
             return;
         }
-        if (remainingQuantity.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal threshold = product.getMinimumQuantityThreshold();
-            if (threshold == null || remainingQuantity.compareTo(threshold) > 0) {
-                return;
-            }
+        boolean belowThreshold = outOfStock;
+        BigDecimal threshold = product.getMinimumQuantityThreshold();
+        UnitOfMeasure defaultUnit = product.getDefaultUnit();
+        if (!belowThreshold && threshold != null && defaultUnit != null && entry.getUnit() != null
+            && Objects.equals(defaultUnit.getId(), entry.getUnit().getId())) {
+            BigDecimal totalInDefaultUnit = orZero(stockEntryRepository.sumQuantityByProductStatusAndUnitExcluding(
+                product.getId(), StockStatus.AVAILABLE, defaultUnit.getId(), entry.getId())).add(remainingInEntry);
+            belowThreshold = totalInDefaultUnit.compareTo(threshold) <= 0;
         }
-        BigDecimal replenishmentQty = product.getReorderQuantity() == null ? BigDecimal.ONE : product.getReorderQuantity();
-        shoppingListService.autoAddIfMissing(product, replenishmentQty);
+        if (belowThreshold) {
+            BigDecimal replenishmentQty = product.getReorderQuantity() == null ? BigDecimal.ONE : product.getReorderQuantity();
+            shoppingListService.autoAddIfMissing(product, replenishmentQty);
+        }
+    }
+
+    private static BigDecimal orZero(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 
     private StockEntry cloneEntry(StockEntry source) {

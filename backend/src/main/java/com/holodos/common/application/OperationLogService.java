@@ -8,6 +8,8 @@ import com.holodos.common.infrastructure.OperationLogRepository;
 import java.util.Map;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OperationLogService {
@@ -19,6 +21,8 @@ public class OperationLogService {
         this.objectMapper = objectMapper;
     }
 
+    /** Runs in its own transaction: it is called after the business transaction has already committed. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(String eventType, String entityType, String entityId, Map<String, Object> payload) {
         OperationLog log = new OperationLog();
         log.setEventType(eventType);

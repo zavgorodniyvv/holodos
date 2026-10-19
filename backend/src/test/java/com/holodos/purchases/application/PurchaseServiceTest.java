@@ -1,6 +1,7 @@
 package com.holodos.purchases.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -10,6 +11,7 @@ import com.holodos.catalog.domain.UnitOfMeasure;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
 import com.holodos.common.application.DomainEventPublisher;
 import com.holodos.common.application.events.OperationLogEvent;
+import com.holodos.common.domain.ConflictException;
 import com.holodos.inventory.infrastructure.StockEntryRepository;
 import com.holodos.purchases.api.PurchaseDtos.ProcessPurchaseRequest;
 import com.holodos.purchases.infrastructure.PurchaseEventRepository;
@@ -70,5 +72,19 @@ class PurchaseServiceTest {
         ArgumentCaptor<OperationLogEvent> eventCaptor = ArgumentCaptor.forClass(OperationLogEvent.class);
         verify(domainEventPublisher).publish(eventCaptor.capture());
         assertEquals("PURCHASE_PROCESS", eventCaptor.getValue().eventType());
+    }
+
+    @Test
+    void processPurchaseRejectsAlreadyCompletedItem() {
+        Product product = new Product();
+        ShoppingListItem item = new ShoppingListItem();
+        item.setProduct(product);
+        item.setStatus(ShoppingItemStatus.COMPLETED);
+        when(shoppingListItemRepository.findById(1L)).thenReturn(Optional.of(item));
+
+        assertThrows(ConflictException.class, () ->
+            purchaseService.processPurchase(new ProcessPurchaseRequest(1L, BigDecimal.ONE, null, null, null, null)));
+        verify(stockEntryRepository, never()).save(any());
+        verify(purchaseEventRepository, never()).save(any());
     }
 }

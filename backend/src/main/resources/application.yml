@@ -15,6 +15,18 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  data:
+    web:
+      pageable:
+        max-page-size: 500
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+  task:
+    scheduling:
+      pool:
+        size: 4
   cache:
     cache-names:
       - storage-places
@@ -33,6 +45,19 @@ spring:
 
 server:
   forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
 springdoc:
   api-docs:
@@ -41,22 +66,16 @@ springdoc:
     path: /swagger-ui.html
 
 holodos:
+  # Household time zone: quiet hours for notifications are interpreted in it
+  time-zone: ${HOLODOS_TIME_ZONE:Europe/Kyiv}
   security:
     allowed-emails:
       - zavgorodniy@gmail.com
       - podshybyakina@gmail.com
-  api:
-    default-page-size: 20
-    max-page-size: 100
   cors:
-    allowed-origins: "${HOLODOS_CORS_ALLOWED_ORIGINS:http://localhost:*}"
+    allowed-origins: "${HOLODOS_CORS_ALLOWED_ORIGINS:}"
   media:
     root-path: "${HOLODOS_MEDIA_PATH:${java.io.tmpdir}/holodos-media}"
-  integrations:
-    google-tasks:
-      client-id: ${GOOGLE_TASKS_CLIENT_ID:}
-      client-secret: ${GOOGLE_TASKS_CLIENT_SECRET:}
-      redirect-uri: ${GOOGLE_TASKS_REDIRECT_URI:http://localhost:8080/api/integrations/google-tasks/oauth2/callback}
     # To use MinIO (S3-compatible) instead of filesystem, uncomment:
     # provider: S3
     # s3:
@@ -66,3 +85,8 @@ holodos:
     #   region: us-east-1
     #   endpoint: http://localhost:9000
     #   path-style-access: true
+  integrations:
+    google-tasks:
+      client-id: ${GOOGLE_TASKS_CLIENT_ID:}
+      client-secret: ${GOOGLE_TASKS_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_TASKS_REDIRECT_URI:http://localhost:8080/api/integrations/google-tasks/oauth2/callback}

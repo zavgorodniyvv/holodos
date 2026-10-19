@@ -1,8 +1,10 @@
 package com.holodos.catalog.api;
 
 import com.holodos.catalog.domain.UnitType;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -37,11 +39,12 @@ public final class CatalogDtos {
         @NotNull Long defaultUnitId,
         @NotNull Long defaultStoragePlaceId,
         Long defaultStoreId,
+        /** Ignored: the photo is managed via /api/products/{id}/photo. Kept for request compatibility. */
         String photoKey,
         String description,
-        Integer shelfLifeDays,
-        BigDecimal minimumQuantityThreshold,
-        BigDecimal reorderQuantity,
+        @Positive Integer shelfLifeDays,
+        @PositiveOrZero @Digits(integer = 11, fraction = 3) BigDecimal minimumQuantityThreshold,
+        @Positive @Digits(integer = 11, fraction = 3) BigDecimal reorderQuantity,
         @NotNull Boolean autoAddShopping,
         String barcode,
         String note,

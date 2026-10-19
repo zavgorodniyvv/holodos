@@ -49,7 +49,7 @@ class ShoppingListServiceTest {
     }
 
     @Test
-    void autoAddMergesExistingActiveItem() {
+    void autoAddLeavesExistingActiveItemUntouched() {
         Product product = new Product();
         ReflectionTestUtils.setField(product, "id", 42L);
         product.setAutoAddShopping(true);
@@ -57,16 +57,31 @@ class ShoppingListServiceTest {
         existing.setQuantity(BigDecimal.ONE);
         when(shoppingListItemRepository.findFirstByProductIdAndStatus(42L, ShoppingItemStatus.ACTIVE))
             .thenReturn(java.util.Optional.of(existing));
-        when(shoppingListItemRepository.save(existing)).thenAnswer(i -> i.getArgument(0));
+
+        shoppingListService.autoAddIfMissing(product, BigDecimal.valueOf(2));
+        shoppingListService.autoAddIfMissing(product, BigDecimal.valueOf(2));
+
+        assertEquals(BigDecimal.ONE, existing.getQuantity());
+        verify(shoppingListItemRepository, never()).save(any());
+        verify(domainEventPublisher, never()).publish(any());
+    }
+
+    @Test
+    void autoAddCreatesItemWhenNoneActive() {
+        Product product = new Product();
+        ReflectionTestUtils.setField(product, "id", 42L);
+        product.setName("Milk");
+        product.setAutoAddShopping(true);
+        when(shoppingListItemRepository.findFirstByProductIdAndStatus(42L, ShoppingItemStatus.ACTIVE))
+            .thenReturn(java.util.Optional.empty());
+        when(shoppingListItemRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         shoppingListService.autoAddIfMissing(product, BigDecimal.valueOf(2));
 
-        assertEquals(BigDecimal.valueOf(3), existing.getQuantity());
-        verify(shoppingListItemRepository).save(existing);
-        ArgumentCaptor<OperationLogEvent> eventCaptor = ArgumentCaptor.forClass(OperationLogEvent.class);
-        verify(domainEventPublisher, atLeastOnce()).publish(eventCaptor.capture());
-        OperationLogEvent lastEvent = eventCaptor.getValue();
-        assertEquals("SHOPPING_AUTO_ADD", lastEvent.eventType());
-        assertEquals(true, lastEvent.payload().get("merged"));
+        ArgumentCaptor<ShoppingListItem> captor = ArgumentCaptor.forClass(ShoppingListItem.class);
+        verify(shoppingListItemRepository).save(captor.capture());
+        assertEquals("Milk", captor.getValue().getTitle());
+        assertEquals(BigDecimal.valueOf(2), captor.getValue().getQuantity());
+        assertEquals(ShoppingItemSource.AUTO_REPLENISHMENT, captor.getValue().getSource());
     }
 }

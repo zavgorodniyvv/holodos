@@ -73,6 +73,25 @@ class ProductServiceTest {
         assertEquals("Fridge", response.defaultStoragePlaceName());
     }
 
+    @Test
+    void updateKeepsExistingPhotoAndIgnoresClientSuppliedKey() {
+        Product product = new Product();
+        product.setPhotoKey("products/5/real.jpg");
+        when(productRepository.findById(5L)).thenReturn(Optional.of(product));
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(new Category()));
+        when(unitRepository.findById(1L)).thenReturn(Optional.of(new UnitOfMeasure()));
+        when(storagePlaceRepository.findById(1L)).thenReturn(Optional.of(new StoragePlace()));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ProductUpsertRequest b = baseRequest();
+        ProductUpsertRequest request = new ProductUpsertRequest(b.name(), b.categoryId(), b.defaultUnitId(), b.defaultStoragePlaceId(),
+            b.defaultStoreId(), "/app/app.jar", b.description(), b.shelfLifeDays(), b.minimumQuantityThreshold(),
+            b.reorderQuantity(), b.autoAddShopping(), b.barcode(), b.note(), b.active());
+
+        productService.update(5L, request);
+
+        assertEquals("products/5/real.jpg", product.getPhotoKey());
+    }
+
     private ProductUpsertRequest baseRequest() {
         return new ProductUpsertRequest(
             "Milk",

@@ -3,6 +3,7 @@ package com.holodos.export.api;
 import com.holodos.export.application.BackupService;
 import com.holodos.export.domain.BackupSnapshot;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,9 +33,9 @@ public class BackupController {
     @PostMapping("/restore")
     public RestoreResponse restore(@Valid @RequestBody RestoreRequest request) {
         var result = backupService.restoreSnapshot(request.snapshot(), request.clearExisting());
-        return new RestoreResponse("OK", result.storagePlaces(), result.units(), result.categories(), result.stores(), result.products(), result.shoppingItems());
+        return new RestoreResponse("OK", result.storagePlaces(), result.units(), result.categories(), result.stores(), result.products(), result.shoppingItems(), result.stockEntries());
     }
 
-    public record RestoreRequest(BackupSnapshot snapshot, boolean clearExisting) {}
-    public record RestoreResponse(String status, int storagePlaces, int units, int categories, int stores, int products, int shoppingItems) {}
+    public record RestoreRequest(@NotNull BackupSnapshot snapshot, boolean clearExisting) {}
+    public record RestoreResponse(String status, int storagePlaces, int units, int categories, int stores, int products, int shoppingItems, int stockEntries) {}
 }

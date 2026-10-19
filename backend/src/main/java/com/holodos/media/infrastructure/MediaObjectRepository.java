@@ -9,4 +9,5 @@ public interface MediaObjectRepository extends JpaRepository<MediaObject, Long> 
     Optional<MediaObject> findByObjectKey(String objectKey);
 
     void deleteByObjectKey(String objectKey);
+    boolean existsByObjectKey(String objectKey);
 }

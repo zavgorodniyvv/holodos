@@ -2,6 +2,8 @@ package com.holodos.common.domain;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "operation_log")
@@ -20,6 +22,7 @@ public class OperationLog {
     @Column(name = "entity_id")
     private String entityId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload", columnDefinition = "jsonb")
     private String payload;
 
