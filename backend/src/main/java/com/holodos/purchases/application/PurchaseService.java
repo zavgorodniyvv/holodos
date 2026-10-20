@@ -1,5 +1,6 @@
 package com.holodos.purchases.application;
 
+import com.holodos.catalog.application.ProductResolver;
 import com.holodos.catalog.domain.StoragePlace;
 import com.holodos.catalog.infrastructure.StoragePlaceRepository;
 import com.holodos.common.application.DomainEventPublisher;
@@ -28,15 +29,17 @@ public class PurchaseService {
     private final StockEntryRepository stockEntryRepository;
     private final StoragePlaceRepository storagePlaceRepository;
     private final DomainEventPublisher domainEventPublisher;
+    private final ProductResolver productResolver;
 
     public PurchaseService(ShoppingListItemRepository shoppingListItemRepository, PurchaseEventRepository purchaseEventRepository,
                            StockEntryRepository stockEntryRepository, StoragePlaceRepository storagePlaceRepository,
-                           DomainEventPublisher domainEventPublisher) {
+                           DomainEventPublisher domainEventPublisher, ProductResolver productResolver) {
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.purchaseEventRepository = purchaseEventRepository;
         this.stockEntryRepository = stockEntryRepository;
         this.storagePlaceRepository = storagePlaceRepository;
         this.domainEventPublisher = domainEventPublisher;
+        this.productResolver = productResolver;
     }
 
     public void processPurchase(ProcessPurchaseRequest request) {
@@ -47,7 +50,9 @@ public class PurchaseService {
             throw new ConflictException("Shopping item is already completed");
         }
         if (item.getProduct() == null) {
-            throw new IllegalArgumentException("Shopping item must be linked to a product");
+            // Free-text and Keep-synced items: link to the product with this title, creating it if needed
+            item.setProduct(productResolver.resolveOrCreate(item.getTitle(), null,
+                item.getUnit() == null ? null : item.getUnit().getId(), request.storagePlaceId(), null));
         }
 
         OffsetDateTime purchasedAt = request.purchasedAt() == null ? OffsetDateTime.now() : request.purchasedAt();

@@ -56,6 +56,10 @@ class ApplicationIntegrationTest {
         registry.add("spring.security.oauth2.client.registration.google.client-secret", () -> "test");
         String mediaRoot = Files.createTempDirectory("holodos-media").toString();
         registry.add("holodos.media.root-path", () -> mediaRoot);
+        // Real OpenAI classifier pointed at a closed port: proves the bean wires and that AI failures fall back to defaults
+        registry.add("holodos.integrations.openai.enabled", () -> "true");
+        registry.add("holodos.integrations.openai.api-key", () -> "test");
+        registry.add("holodos.integrations.openai.base-url", () -> "http://127.0.0.1:9");
     }
 
     @Autowired ProductService productService;
@@ -80,7 +84,7 @@ class ApplicationIntegrationTest {
         var milk = productService.create(new ProductUpsertRequest("Milk", categoryId, unitId, fridgeId, null, null, null,
             7, BigDecimal.ONE, BigDecimal.valueOf(2), true, null, null, true));
         var stock = inventoryService.addStock(new AddStockRequest(milk.id(), BigDecimal.valueOf(3), unitId, fridgeId,
-            null, null, OffsetDateTime.now().minusDays(1), null));
+            null, null, OffsetDateTime.now().minusDays(1), null, null, null, null));
 
         // Audit log: written after commit in its own transaction, payload stored as real JSONB
         Integer stockAddRows = waitForOperationLog("STOCK_ADD");
@@ -126,6 +130,20 @@ class ApplicationIntegrationTest {
         int categoriesBefore = categoryRepository.findAll().size();
         backupService.restoreSnapshot(snapshot, false);
         assertEquals(categoriesBefore, categoryRepository.findAll().size());
+
+        // Adding by name creates the product once (Cyrillic, case-insensitive); a free-text item is linked to it on purchase
+        // (the restore above re-created the dictionaries, so their ids changed)
+        long literId = unitRepository.findByCode("l").orElseThrow().getId();
+        long restoredFridgeId = storagePlaceRepository.findByName("Fridge").orElseThrow().getId();
+        var kefirStock = inventoryService.addStock(new AddStockRequest(null, BigDecimal.ONE, literId, restoredFridgeId,
+            null, null, null, null, "кефир", null, 5));
+        var kefirItem = shoppingListService.create(new ShoppingItemUpsertRequest(null, "КЕФИР", BigDecimal.ONE, null, null,
+            ShoppingItemSource.KEEP_SYNC, null, 0));
+        purchaseService.processPurchase(new ProcessPurchaseRequest(kefirItem.id(), BigDecimal.ONE, restoredFridgeId, null, null, null));
+        assertEquals(1, jdbc.queryForObject("select count(*) from products where lower(name) = 'кефир'", Integer.class));
+        assertEquals(kefirStock.productId(),
+            jdbc.queryForObject("select product_id from shopping_list_items where id = ?", Long.class, kefirItem.id()));
+        assertTrue(kefirStock.expiresAt() != null, "expiry derived from the shelf life of the new product");
     }
 
     private Integer waitForOperationLog(String eventType) throws InterruptedException {

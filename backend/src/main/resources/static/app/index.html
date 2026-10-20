@@ -203,6 +203,14 @@
     .fin:focus{border-color:#1f6feb;-webkit-box-shadow:0 0 0 3px rgba(31,111,235,.15);box-shadow:0 0 0 3px rgba(31,111,235,.15);}
     select.fin{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%2398a2b3' viewBox='0 0 16 16'%3e%3cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 14px center;background-size:13px;padding-right:38px;}
     textarea.fin{height:auto;padding:12px 14px;line-height:1.4;resize:none;}
+    .sugg{margin-top:6px;border:1px solid #eaecf0;border-radius:12px;overflow:hidden;background:#fff;}
+    .sugg:empty,.fhint:empty{display:none;}
+    .sugg-row{padding:14px;border-top:1px solid #eaecf0;font-size:1rem;color:#101828;cursor:pointer;}
+    .sugg-row:first-child{border-top:none;}
+    .sugg-row:active{background:#f2f4f7;}
+    .sugg-new{color:#1f6feb;font-weight:600;}
+    .sugg-new .i{width:18px;height:18px;margin-right:6px;vertical-align:-3px;}
+    .fhint{margin-top:7px;font-size:.85rem;color:#667085;}
     .stepper{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;border:1px solid #d0d5dd;border-radius:12px;overflow:hidden;background:#fff;}
     .step-btn{width:64px;height:54px;padding:0;border:none;background:#f9fafb;color:#1f6feb;cursor:pointer;text-align:center;-webkit-flex-shrink:0;flex-shrink:0;}
     .step-btn:active{background:#eaecf0;}
@@ -350,7 +358,11 @@
   </div>
   <div class="modal-scroll"><div class="form">
     <div class="fg"><label class="flbl">Продукт *</label>
-      <select class="fin" id="as-prod" onchange="App.onProdChange()"><option value="">— выберите —</option></select></div>
+      <input class="fin" type="text" id="as-name" placeholder="Начните вводить название" autocomplete="off" autocorrect="off" oninput="App.onProdInput()">
+      <div class="sugg" id="as-sugg"></div>
+      <div class="fhint" id="as-hint"></div></div>
+    <div class="fg" id="as-cat-row" style="display:none"><label class="flbl">Категория нового продукта</label>
+      <select class="fin" id="as-cat"></select></div>
     <div class="fg"><label class="flbl">Количество *</label>
       <div class="stepper"><button class="step-btn" onclick="App.step('as-qty',-1)"><svg class="i"><use xlink:href="#i-minus"/></svg></button>
         <input class="step-in" type="number" id="as-qty" value="1" min="0.001" step="0.1">
@@ -422,6 +434,7 @@
     <div class="hero">
       <div class="hero-ico center tone-green"><svg class="i"><use xlink:href="#i-bag"/></svg></div>
       <div class="hero-name" id="buy-name"></div>
+      <div class="hero-sub" id="buy-hint"></div>
     </div>
     <div class="fg"><label class="flbl">Купил сколько? *</label>
       <div class="stepper"><button class="step-btn" onclick="App.step('buy-qty',-.1)"><svg class="i"><use xlink:href="#i-minus"/></svg></button>
@@ -446,11 +459,12 @@ document.getElementById('jscheck').style.display = 'none'; /* JS работае�
 var App = (function() {
   var API = '/api';
   var S = {
-    prods:[], units:[], places:[], stores:[],
+    prods:[], units:[], places:[], stores:[], cats:[],
     pById:{}, uById:{}, plById:{}, stById:{},
     inv:[], shop:[], notifs:[], settings:null, report:null, dashPlace:0, invCollapsed:{},
     tab:'home',
-    stockId:null, shopId:null
+    stockId:null, shopId:null,
+    asPid:null, asNew:null, asLoading:false /* форма запаса: выбранный продукт / подсказка для нового */
   };
 
   /* XHR */
@@ -585,12 +599,14 @@ var App = (function() {
       GET('products?page=0&size=500'),
       GET('units'),
       GET('storage-places'),
-      GET('stores')
+      GET('stores'),
+      GET('categories')
     ]).then(function(r) {
       S.prods  = r[0].content||[];
       S.units  = r[1]||[];
       S.places = r[2]||[];
       S.stores = r[3]||[];
+      S.cats   = r[4]||[];
       S.pById  = idx(S.prods,'id');
       S.uById  = idx(S.units,'id');
       S.plById = idx(S.places,'id');
@@ -934,7 +950,7 @@ var App = (function() {
 
   /* selects */
   function fillSelects() {
-    fill('as-prod', S.prods, function(p){return p.name;}, '— выберите —');
+    fill('as-cat',  S.cats,  function(c){return c.name;}, null);
     fill('as-unit', S.units, function(u){return u.name+' ('+u.shortName+')';}, null);
     fill('as-place',S.places,function(p){return p.name;}, null);
     fill('sh-prod', S.prods, function(p){return p.name;}, '— не выбран —');
@@ -994,31 +1010,114 @@ var App = (function() {
     }).catch(function(e){toast(e.message,'err');});
   }
 
-  function onProdChange() {
-    var pid=parseInt(document.getElementById('as-prod').value,10); if(!pid)return;
-    var p=S.pById[pid]; if(!p)return;
-    if(p.defaultUnitId)         setv('as-unit',p.defaultUnitId);
-    if(p.defaultStoragePlaceId) setv('as-place',p.defaultStoragePlaceId);
+  /* форма запаса: ввод названия, подсказки из каталога, новый продукт через products/suggest */
+  function trim(v){return String(v||'').replace(/^\s+|\s+$/g,'');}
+  function prodByName(name){
+    var n=name.toLowerCase();
+    for(var i=0;i<S.prods.length;i++) if(S.prods[i].name.toLowerCase()===n) return S.prods[i];
+    return null;
+  }
+  function dateIn(days){
+    var d=new Date(); d.setDate(d.getDate()+days);
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+  function setHint(id,text){document.getElementById(id).textContent=text||'';}
+  function suggest(name){return xhr('products/suggest','POST',{name:name});}
+
+  function onProdInput() {
+    var q=trim(document.getElementById('as-name').value).toLowerCase();
+    S.asPid=null; S.asNew=null;
+    document.getElementById('as-cat-row').style.display='none';
+    setHint('as-hint','');
+    var h='', exact=false, n=0;
+    if(q){
+      for(var i=0;i<S.prods.length&&n<6;i++){
+        var p=S.prods[i], nm=p.name.toLowerCase();
+        if(nm.indexOf(q)<0)continue;
+        if(nm===q)exact=true;
+        h+='<div class="sugg-row" onclick="App.pickProd('+p.id+')">'+esc(p.name)+'</div>'; n++;
+      }
+      if(!exact) h+='<div class="sugg-row sugg-new" onclick="App.pickNewProd()">'+ico('plus')+'Новый продукт «'+esc(trim(document.getElementById('as-name').value))+'»</div>';
+    }
+    document.getElementById('as-sugg').innerHTML=h;
+  }
+  function pickProd(id) {
+    var p=S.pById[id]; if(!p)return;
+    document.getElementById('as-name').value=p.name;
+    document.getElementById('as-sugg').innerHTML='';
+    document.getElementById('as-cat-row').style.display='none';
+    setHint('as-hint','');
+    S.asPid=id; S.asNew=null;
+    setv('as-unit',p.defaultUnitId);
+    setv('as-place',p.defaultStoragePlaceId);
+  }
+  function pickNewProd() {
+    var name=trim(document.getElementById('as-name').value); if(!name)return;
+    document.getElementById('as-sugg').innerHTML='';
+    S.asLoading=true;
+    setHint('as-hint','Подбираю единицу, место и срок годности…');
+    suggest(name).then(function(r){
+      S.asLoading=false;
+      if(trim(document.getElementById('as-name').value)!==name)return; /* название уже поменяли */
+      if(r.existingProductId&&S.pById[r.existingProductId]){pickProd(r.existingProductId);return;}
+      if(r.existingProductId){S.asPid=r.existingProductId; setHint('as-hint','');}
+      else{
+        S.asNew=r;
+        document.getElementById('as-name').value=r.name;
+        setv('as-cat',r.categoryId);
+        document.getElementById('as-cat-row').style.display='';
+        setHint('as-hint',r.aiUsed?'Новый продукт: поля подобраны автоматически, проверьте их':'Новый продукт: проверьте единицу, место и категорию');
+      }
+      setv('as-unit',r.unitId);
+      setv('as-place',r.storagePlaceId);
+      var exp=document.getElementById('as-exp');
+      if(r.shelfLifeDays&&!exp.value)exp.value=dateIn(r.shelfLifeDays);
+    }).catch(function(e){
+      S.asLoading=false; setHint('as-hint',''); toast(e.message,'err');
+    });
+  }
+  function resetStockForm() {
+    document.getElementById('as-name').value='';
+    document.getElementById('as-sugg').innerHTML='';
+    document.getElementById('as-cat-row').style.display='none';
+    setHint('as-hint','');
+    document.getElementById('as-qty').value='1';
+    document.getElementById('as-exp').value='';
+    document.getElementById('as-note').value='';
+    S.asPid=null; S.asNew=null;
   }
   function addStock() {
-    var pid=parseInt(document.getElementById('as-prod').value,10);
+    var name=trim(document.getElementById('as-name').value);
     var qty=parseFloat(document.getElementById('as-qty').value);
     var uid=parseInt(document.getElementById('as-unit').value,10);
     var plid=parseInt(document.getElementById('as-place').value,10);
     var exp=document.getElementById('as-exp').value;
     var note=document.getElementById('as-note').value.trim();
-    if(!pid){toast('Выберите продукт','err');return;}
+    if(!name){toast('Укажите продукт','err');return;}
+    if(S.asLoading){toast('Подождите, подбираю поля…');return;}
+    var pid=S.asPid;
+    if(!pid){var ex=prodByName(name); if(ex)pid=ex.id;}
+    if(!pid&&!S.asNew){
+      /* новый продукт: сначала показать подобранные поля, добавить — вторым нажатием */
+      pickNewProd(); return;
+    }
     if(!qty){toast('Укажите количество','err');return;}
     if(!uid){toast('Выберите единицу','err');return;}
     if(!plid){toast('Выберите место','err');return;}
-    POST('stock-entries',{productId:pid,quantity:qty,unitId:uid,storagePlaceId:plid,
-      expiresAt:exp?exp+'T00:00:00+00:00':null,comment:note||null}).then(function(){
+    var body={quantity:qty,unitId:uid,storagePlaceId:plid,
+      expiresAt:exp?exp+'T00:00:00+00:00':null,comment:note||null};
+    if(pid){body.productId=pid;}
+    else{
+      body.productName=name;
+      body.categoryId=parseInt(document.getElementById('as-cat').value,10)||null;
+      body.shelfLifeDays=S.asNew.shelfLifeDays||null;
+    }
+    POST('stock-entries',body).then(function(){
       closeModal('m-stock');
-      document.getElementById('as-prod').value='';
-      document.getElementById('as-qty').value='1';
-      document.getElementById('as-exp').value='';
-      document.getElementById('as-note').value='';
-      toast('Добавлено!','ok'); return refreshInv();
+      resetStockForm();
+      if(pid){toast('Добавлено!','ok'); return refreshInv();}
+      toast('Создан продукт «'+name+'» и добавлен в запасы','ok');
+      return loadRef().then(function(){fillSelects(); return refreshInv();});
     }).catch(function(e){toast(e.message,'err');});
   }
 
@@ -1042,7 +1141,18 @@ var App = (function() {
     document.getElementById('buy-qty').value=parseFloat(e.quantity);
     document.getElementById('buy-exp').value='';
     document.getElementById('buy-note').value='';
+    setHint('buy-hint','');
     if(e.productId){var p=S.pById[e.productId];if(p&&p.defaultStoragePlaceId)setv('buy-place',p.defaultStoragePlaceId);}
+    else{
+      /* пункт без продукта: продукт найдётся или создастся при покупке, а место и срок подсказываем заранее */
+      suggest(e.title).then(function(r){
+        if(S.shopId!==id)return;
+        setv('buy-place',r.storagePlaceId);
+        var exp=document.getElementById('buy-exp');
+        if(r.shelfLifeDays&&!exp.value)exp.value=dateIn(r.shelfLifeDays);
+        setHint('buy-hint',r.existingProductId?'':'Будет создан новый продукт «'+r.name+'»');
+      }).catch(function(){});
+    }
     openModal('m-buy');
   }
   function doBuy() {
@@ -1052,11 +1162,12 @@ var App = (function() {
     var note=document.getElementById('buy-note').value.trim();
     if(!qty){toast('Укажите количество','err');return;}
     if(!plid){toast('Выберите место','err');return;}
+    var item=byId(S.shop,S.shopId), linked=!!(item&&item.productId);
     POST('purchases/process',{shoppingListItemId:S.shopId,actualQuantity:qty,storagePlaceId:plid,
       expiresAt:exp?exp+'T00:00:00+00:00':null,comment:note||null}).then(function(){
       closeModal('m-buy'); toast('Добавлено в инвентарь!','ok');
-      return Promise.all([loadInv(),loadShop(),loadReport()]);
-    }).then(function(){renderInv();renderShop();renderDashboard();}).catch(function(e){toast(e.message,'err');});
+      return Promise.all([loadInv(),loadShop(),loadReport(),linked?null:loadRef()]);
+    }).then(function(){renderInv();renderShop();renderDashboard();if(!linked)fillSelects();}).catch(function(e){toast(e.message,'err');});
   }
   function removeShop(id) {
     closeSheet();
@@ -1129,7 +1240,7 @@ var App = (function() {
   return {
     init:init, reload:reload, showTab:showTab, fabAction:fabAction,
     openInvSheet:openInvSheet, startConsume:startConsume, doConsume:doConsume,
-    doDiscard:doDiscard, onProdChange:onProdChange, addStock:addStock,
+    doDiscard:doDiscard, onProdInput:onProdInput, pickProd:pickProd, pickNewProd:pickNewProd, addStock:addStock,
     openShopSheet:openShopSheet, startBuy:startBuy, doBuy:doBuy,
     removeShop:removeShop, onShProdChange:onShProdChange, addShopping:addShopping,
     readNotif:readNotif, saveSettings:saveSettings,

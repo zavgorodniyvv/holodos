@@ -1,5 +1,6 @@
 package com.holodos.inventory.application;
 
+import com.holodos.catalog.application.ProductResolver;
 import com.holodos.catalog.domain.Product;
 import com.holodos.catalog.domain.StoragePlace;
 import com.holodos.catalog.domain.UnitOfMeasure;
@@ -44,12 +45,13 @@ public class InventoryService {
     private final DomainEventPublisher domainEventPublisher;
     private final InventoryAdjustmentRepository adjustmentRepository;
     private final NotificationService notificationService;
+    private final ProductResolver productResolver;
 
     public InventoryService(StockEntryRepository stockEntryRepository, InventoryMovementRepository movementRepository,
                             ProductRepository productRepository, UnitRepository unitRepository,
                             StoragePlaceRepository storagePlaceRepository, ShoppingListService shoppingListService,
                             DomainEventPublisher domainEventPublisher, InventoryAdjustmentRepository adjustmentRepository,
-                            NotificationService notificationService) {
+                            NotificationService notificationService, ProductResolver productResolver) {
         this.stockEntryRepository = stockEntryRepository;
         this.movementRepository = movementRepository;
         this.productRepository = productRepository;
@@ -59,6 +61,7 @@ public class InventoryService {
         this.domainEventPublisher = domainEventPublisher;
         this.adjustmentRepository = adjustmentRepository;
         this.notificationService = notificationService;
+        this.productResolver = productResolver;
     }
 
     @Transactional(readOnly = true)
@@ -74,18 +77,29 @@ public class InventoryService {
     }
 
     public StockEntryResponse addStock(AddStockRequest request) {
-        Product product = productRepository.findById(request.productId()).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        boolean byName = request.productName() != null && !request.productName().isBlank();
+        if ((request.productId() == null) == !byName) {
+            throw new IllegalArgumentException("Exactly one of productId or productName is required");
+        }
         UnitOfMeasure unit = unitRepository.findById(request.unitId()).orElseThrow(() -> new IllegalArgumentException("Unit not found"));
         StoragePlace storage = storagePlaceRepository.findById(request.storagePlaceId()).orElseThrow(() -> new IllegalArgumentException("Storage place not found"));
+        Product product = byName
+            ? productResolver.resolveOrCreate(request.productName(), request.categoryId(), unit.getId(), storage.getId(), request.shelfLifeDays())
+            : productRepository.findById(request.productId()).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        OffsetDateTime addedAt = request.addedAt() == null ? OffsetDateTime.now() : request.addedAt();
+        OffsetDateTime expiresAt = request.expiresAt();
+        if (expiresAt == null && product.getShelfLifeDays() != null) {
+            expiresAt = addedAt.plusDays(product.getShelfLifeDays());
+        }
 
         StockEntry entry = new StockEntry();
         entry.setProduct(product);
         entry.setUnit(unit);
         entry.setStoragePlace(storage);
         entry.setQuantity(request.quantity());
-        entry.setAddedAt(request.addedAt() == null ? OffsetDateTime.now() : request.addedAt());
+        entry.setAddedAt(addedAt);
         entry.setPurchasedAt(request.purchasedAt());
-        entry.setExpiresAt(request.expiresAt());
+        entry.setExpiresAt(expiresAt);
         entry.setComment(request.comment());
         entry.setStatus(StockStatus.AVAILABLE);
         StockEntry saved = stockEntryRepository.save(entry);
