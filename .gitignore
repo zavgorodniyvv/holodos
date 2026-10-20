@@ -30,3 +30,6 @@ replay_pid*
 
 # Database dumps contain personal data and OAuth tokens
 *.dump
+
+# Auto-deploy pauses the container watchdog with this flag
+.watchdog-off
