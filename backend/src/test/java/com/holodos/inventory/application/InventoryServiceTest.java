@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.holodos.catalog.application.ProductResolver;
 import com.holodos.catalog.domain.Product;
 import com.holodos.catalog.domain.StoragePlace;
 import com.holodos.catalog.domain.UnitOfMeasure;
@@ -14,6 +15,7 @@ import com.holodos.catalog.infrastructure.StoragePlaceRepository;
 import com.holodos.catalog.infrastructure.UnitRepository;
 import com.holodos.common.application.DomainEventPublisher;
 import com.holodos.common.application.events.OperationLogEvent;
+import com.holodos.inventory.api.InventoryDtos.AddStockRequest;
 import com.holodos.inventory.api.InventoryDtos.AdjustStockRequest;
 import com.holodos.inventory.api.InventoryDtos.ConsumeStockRequest;
 import com.holodos.inventory.api.InventoryDtos.MoveStockRequest;
@@ -27,6 +29,7 @@ import com.holodos.inventory.infrastructure.StockEntryRepository;
 import com.holodos.notifications.application.NotificationService;
 import com.holodos.shopping.application.ShoppingListService;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,13 +50,14 @@ class InventoryServiceTest {
     @Mock ShoppingListService shoppingListService;
     @Mock DomainEventPublisher domainEventPublisher;
     @Mock NotificationService notificationService;
+    @Mock ProductResolver productResolver;
 
     InventoryService inventoryService;
 
     @BeforeEach
     void setUp() {
         inventoryService = new InventoryService(stockEntryRepository, movementRepository, productRepository, unitRepository,
-            storagePlaceRepository, shoppingListService, domainEventPublisher, adjustmentRepository, notificationService);
+            storagePlaceRepository, shoppingListService, domainEventPublisher, adjustmentRepository, notificationService, productResolver);
     }
 
     @Test
@@ -261,5 +265,38 @@ class InventoryServiceTest {
         inventoryService.consume(10L, new ConsumeStockRequest(BigDecimal.ONE));
 
         verify(shoppingListService, never()).autoAddIfMissing(any(), any());
+    }
+
+    @Test
+    void addStockByNameCreatesProductWithChosenUnitAndPlace() {
+        UnitOfMeasure unit = new UnitOfMeasure();
+        ReflectionTestUtils.setField(unit, "id", 3L);
+        StoragePlace place = new StoragePlace();
+        ReflectionTestUtils.setField(place, "id", 5L);
+        Product product = new Product();
+        ReflectionTestUtils.setField(product, "id", 9L);
+        product.setShelfLifeDays(10);
+        OffsetDateTime addedAt = OffsetDateTime.now();
+        when(unitRepository.findById(3L)).thenReturn(Optional.of(unit));
+        when(storagePlaceRepository.findById(5L)).thenReturn(Optional.of(place));
+        when(productResolver.resolveOrCreate("Кефир", 2L, 3L, 5L, 10)).thenReturn(product);
+        when(stockEntryRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        inventoryService.addStock(new AddStockRequest(null, BigDecimal.ONE, 3L, 5L, addedAt, null, null, null, "Кефир", 2L, 10));
+
+        ArgumentCaptor<StockEntry> captor = ArgumentCaptor.forClass(StockEntry.class);
+        verify(stockEntryRepository).save(captor.capture());
+        assertEquals(product, captor.getValue().getProduct());
+        assertEquals(addedAt.plusDays(10), captor.getValue().getExpiresAt());
+        verify(productRepository, never()).findById(any());
+    }
+
+    @Test
+    void addStockRequiresExactlyOneOfProductIdAndName() {
+        assertThrows(IllegalArgumentException.class, () -> inventoryService.addStock(
+            new AddStockRequest(null, BigDecimal.ONE, 3L, 5L, null, null, null, null, " ", null, null)));
+        assertThrows(IllegalArgumentException.class, () -> inventoryService.addStock(
+            new AddStockRequest(1L, BigDecimal.ONE, 3L, 5L, null, null, null, null, "Кефир", null, null)));
+        verifyNoInteractions(productResolver, stockEntryRepository);
     }
 }

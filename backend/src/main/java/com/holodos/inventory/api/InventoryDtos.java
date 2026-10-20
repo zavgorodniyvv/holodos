@@ -5,21 +5,29 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 public final class InventoryDtos {
     private InventoryDtos() {}
 
+    /**
+     * Either productId, or productName for a product that may not exist yet: it is then created with
+     * unitId/storagePlaceId as its defaults plus the optional categoryId/shelfLifeDays (guessed when missing).
+     */
     public record AddStockRequest(
-        @NotNull Long productId,
+        Long productId,
         @NotNull @Positive @Digits(integer = 11, fraction = 3) BigDecimal quantity,
         @NotNull Long unitId,
         @NotNull Long storagePlaceId,
         OffsetDateTime addedAt,
         OffsetDateTime purchasedAt,
         OffsetDateTime expiresAt,
-        String comment
+        String comment,
+        @Size(max = 200) String productName,
+        Long categoryId,
+        @Positive Integer shelfLifeDays
     ) {}
 
     public record ConsumeStockRequest(

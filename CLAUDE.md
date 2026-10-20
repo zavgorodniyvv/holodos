@@ -68,6 +68,7 @@ Actual conventions (differ from the textbook layering):
 ### Pluggable Adapters
 - Google Keep: `StubGoogleKeepClient` by default; `HttpGoogleKeepClient` when `holodos.integrations.google-keep.enabled=true`. Sync is idempotent with circular-update guards.
 - Google Tasks: real HTTP client, per-user OAuth keyed by `userKey`; setup steps in README.
+- OpenAI (`integrations.openai`): `ProductClassifier` used by `catalog.ProductResolver` to guess category/unit/place/shelf life for products added by name (stock form, buying free-text shopping items). `NoopProductClassifier` unless `OPENAI_ENABLED=true` + `OPENAI_API_KEY`; any AI failure falls back to defaults, never blocks the request.
 - Media: filesystem storage by default (`HOLODOS_MEDIA_PATH`), S3/MinIO when `holodos.media.provider=S3` (the commented S3 example in `application.yml` sits under `integrations` by mistake; the real prefix is `holodos.media`).
 
 ### Schedulers (`@EnableScheduling`)

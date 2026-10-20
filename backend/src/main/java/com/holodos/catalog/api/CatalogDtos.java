@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
@@ -102,6 +103,21 @@ public final class CatalogDtos {
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
         Long version
+    ) {
+    }
+
+    public record ProductSuggestRequest(@NotBlank @Size(max = 200) String name) {
+    }
+
+    /** existingProductId is set when a product with this name already exists; the other fields are its defaults. */
+    public record ProductSuggestionResponse(
+        Long existingProductId,
+        String name,
+        Long categoryId,
+        Long unitId,
+        Long storagePlaceId,
+        Integer shelfLifeDays,
+        boolean aiUsed
     ) {
     }
 }

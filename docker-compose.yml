@@ -42,6 +42,10 @@ services:
       GOOGLE_TASKS_CLIENT_ID: ${GOOGLE_TASKS_CLIENT_ID:-}
       GOOGLE_TASKS_CLIENT_SECRET: ${GOOGLE_TASKS_CLIENT_SECRET:-}
       GOOGLE_TASKS_REDIRECT_URI: ${GOOGLE_TASKS_REDIRECT_URI:-}
+      OPENAI_ENABLED: ${OPENAI_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT-none}  # no colon: an empty value disables reasoning.effort
     volumes:
       - media:/data/media
     depends_on:

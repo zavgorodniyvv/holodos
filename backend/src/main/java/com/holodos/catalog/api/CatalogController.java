@@ -3,10 +3,13 @@ package com.holodos.catalog.api;
 import com.holodos.catalog.api.CatalogDtos.DictionaryResponse;
 import com.holodos.catalog.api.CatalogDtos.DictionaryUpsertRequest;
 import com.holodos.catalog.api.CatalogDtos.ProductResponse;
+import com.holodos.catalog.api.CatalogDtos.ProductSuggestRequest;
+import com.holodos.catalog.api.CatalogDtos.ProductSuggestionResponse;
 import com.holodos.catalog.api.CatalogDtos.ProductUpsertRequest;
 import com.holodos.catalog.api.CatalogDtos.UnitResponse;
 import com.holodos.catalog.api.CatalogDtos.UnitUpsertRequest;
 import com.holodos.catalog.application.CatalogDictionaryService;
+import com.holodos.catalog.application.ProductResolver;
 import com.holodos.catalog.application.ProductService;
 import com.holodos.catalog.application.UnitService;
 import jakarta.validation.Valid;
@@ -33,15 +36,18 @@ public class CatalogController {
     private final CatalogDictionaryService dictionaryService;
     private final UnitService unitService;
     private final ProductService productService;
+    private final ProductResolver productResolver;
 
     public CatalogController(
         CatalogDictionaryService dictionaryService,
         UnitService unitService,
-        ProductService productService
+        ProductService productService,
+        ProductResolver productResolver
     ) {
         this.dictionaryService = dictionaryService;
         this.unitService = unitService;
         this.productService = productService;
+        this.productResolver = productResolver;
     }
 
     @GetMapping("/storage-places")
@@ -102,6 +108,12 @@ public class CatalogController {
 
     @PostMapping("/products")
     public ProductResponse createProduct(@Valid @RequestBody ProductUpsertRequest request) { return productService.create(request); }
+
+    /** Existing product with this name, or AI-guessed defaults for a new one; nothing is created. */
+    @PostMapping("/products/suggest")
+    public ProductSuggestionResponse suggestProduct(@Valid @RequestBody ProductSuggestRequest request) {
+        return productResolver.suggest(request.name());
+    }
 
     @PutMapping("/products/{id}")
     public ProductResponse updateProduct(@PathVariable Long id, @Valid @RequestBody ProductUpsertRequest request) { return productService.update(id, request); }
