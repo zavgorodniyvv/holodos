@@ -77,12 +77,12 @@ Actual conventions (differ from the textbook layering):
 
 ### Database
 - PostgreSQL 16; credentials `holodos/holodos`, db `holodos`.
-- Flyway migrations in `backend/src/main/resources/db/migration/` (currently V1–V10). Add a new `V<n+1>__*.sql`; never edit applied ones.
+- Flyway migrations in `backend/src/main/resources/db/migration/` (currently V1–V11). Add a new `V<n+1>__*.sql`; never edit applied ones.
 - `ddl-auto=validate` — entity changes require a matching migration or startup fails.
 
 ### Testing
-Unit tests only: `@ExtendWith(MockitoExtension.class)` with mocked repositories, under `backend/src/test/java/com/holodos/<module>/`. Testcontainers is on the classpath but no integration tests use it yet.
+Mostly unit tests: `@ExtendWith(MockitoExtension.class)` with mocked repositories, under `backend/src/test/java/com/holodos/<module>/`. `ApplicationIntegrationTest` boots the whole app against Testcontainers PostgreSQL (skipped when Docker is unavailable).
 
 ## Deployment
 
-Every push to `main` triggers `.github/workflows/deploy.yml`: SSH to the VPS, `git pull`, `docker compose build --no-cache && docker compose up -d`. Merging to `main` = deploying to production. Env vars for the compose stack are listed in `.env.example`.
+No GitHub Actions. The home server pulls itself: cron runs `~/bin/auto-deploy.sh holodos main` every 5 minutes, which fetches `origin/main` and, if there are new commits, fast-forwards `~/holodos`, runs `docker compose build backend && docker compose up -d` and checks `/actuator/health`. Merging to `main` = deploying to production within ~5 minutes. The script skips the deploy if the server checkout has uncommitted changes to tracked files, so configure the server only through `.env` (e.g. `HOLODOS_BIND_ADDRESS`), never by editing `docker-compose.yml` there. Env vars for the compose stack are listed in `.env.example`.
