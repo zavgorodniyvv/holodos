@@ -131,6 +131,12 @@
     .notif.unread .notif-t{font-weight:800;}
     .notif-m{margin-top:3px;font-size:.88rem;line-height:1.4;color:#475467;}
     .notif-d{margin-top:6px;font-size:.78rem;color:#98a2b3;}
+    .notif-act{margin-left:6px;color:#1f6feb;font-weight:600;}
+    .notif-bar{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;margin:4px 4px 10px;}
+    .notif-bar .sec{margin:0;}
+    .link-btn{height:40px;padding:0 14px;border:none;border-radius:20px;background:#e8f0fe;color:#1f6feb;font-size:.9rem;font-weight:700;cursor:pointer;-webkit-flex-shrink:0;flex-shrink:0;}
+    .link-btn:active{background:#d6e4fd;}
+    .link-btn .i{width:18px;height:18px;margin-right:6px;}
 
     /* settings */
     .s-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;min-height:60px;padding:10px 16px;border-bottom:1px solid #f2f4f7;}
@@ -211,6 +217,22 @@
     .sugg-new{color:#1f6feb;font-weight:600;}
     .sugg-new .i{width:18px;height:18px;margin-right:6px;vertical-align:-3px;}
     .fhint{margin-top:7px;font-size:.85rem;color:#667085;}
+    /* select + кнопка «создать новую», под ней — мини-форма */
+    .sel-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;}
+    .sel-row .fin{-webkit-flex:1;flex:1;min-width:0;}
+    .add-mini{width:50px;height:50px;margin-left:10px;padding:0;border:1px solid #d0d5dd;border-radius:12px;background:#fff;color:#1f6feb;cursor:pointer;text-align:center;-webkit-flex-shrink:0;flex-shrink:0;}
+    .add-mini:active{background:#eaecf0;}
+    .add-mini .i{vertical-align:middle;}
+    .newbox{margin-top:10px;padding:14px;border:1px solid #d6e4fd;border-radius:12px;background:#f5f8ff;}
+    .newbox .fin{margin-bottom:10px;}
+    .nb-row{display:-webkit-flex;display:flex;}
+    .nb-row .fin{-webkit-flex:1;flex:1;min-width:0;}
+    .nb-row .fin + .fin{margin-left:10px;}
+    .nb-row .nb-short{-webkit-flex:0 0 110px;flex:0 0 110px;}
+    .nb-btns{text-align:right;}
+    .btn-sm{height:44px;padding:0 18px;margin-left:8px;border:none;border-radius:12px;background:#1f6feb;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;}
+    .btn-sm:active{background:#1557c0;}
+    .btn-sm.gray{background:#eaecf0;color:#344054;}
     .stepper{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;border:1px solid #d0d5dd;border-radius:12px;overflow:hidden;background:#fff;}
     .step-btn{width:64px;height:54px;padding:0;border:none;background:#f9fafb;color:#1f6feb;cursor:pointer;text-align:center;-webkit-flex-shrink:0;flex-shrink:0;}
     .step-btn:active{background:#eaecf0;}
@@ -286,6 +308,7 @@
   <symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v1a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v8h14v-8"/></symbol>
   <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
 </svg>
 
@@ -368,9 +391,21 @@
         <input class="step-in" type="number" id="as-qty" value="1" min="0.001" step="0.1">
         <button class="step-btn" onclick="App.step('as-qty',1)"><svg class="i"><use xlink:href="#i-plus"/></svg></button></div></div>
     <div class="fg"><label class="flbl">Единица *</label>
-      <select class="fin" id="as-unit"></select></div>
+      <div class="sel-row"><select class="fin" id="as-unit"></select>
+        <button class="add-mini" onclick="App.toggleNewBox('nu-box')" aria-label="Новая единица"><svg class="i"><use xlink:href="#i-plus"/></svg></button></div>
+      <div class="newbox" id="nu-box" style="display:none">
+        <div class="nb-row"><input class="fin" type="text" id="nu-name" placeholder="Название, напр. Бутылка" maxlength="120" autocomplete="off">
+          <input class="fin nb-short" type="text" id="nu-short" placeholder="Кратко" maxlength="40" autocomplete="off"></div>
+        <select class="fin" id="nu-type"><option value="COUNT">Штучная</option><option value="WEIGHT">Масса</option><option value="VOLUME">Объём</option><option value="PACKAGING">Упаковка</option><option value="OTHER">Другое</option></select>
+        <div class="nb-btns"><button class="btn-sm gray" onclick="App.toggleNewBox('nu-box')">Отмена</button><button class="btn-sm" onclick="App.createUnit()">Создать единицу</button></div>
+      </div></div>
     <div class="fg"><label class="flbl">Место хранения *</label>
-      <select class="fin" id="as-place"></select></div>
+      <div class="sel-row"><select class="fin" id="as-place"></select>
+        <button class="add-mini" onclick="App.toggleNewBox('np-box')" aria-label="Новое место хранения"><svg class="i"><use xlink:href="#i-plus"/></svg></button></div>
+      <div class="newbox" id="np-box" style="display:none">
+        <input class="fin" type="text" id="np-name" placeholder="Название, напр. Балкон" maxlength="120" autocomplete="off">
+        <div class="nb-btns"><button class="btn-sm gray" onclick="App.toggleNewBox('np-box')">Отмена</button><button class="btn-sm" onclick="App.createPlace()">Создать место</button></div>
+      </div></div>
     <div class="fg"><label class="flbl">Срок годности</label>
       <input class="fin" type="date" id="as-exp"></div>
     <div class="fg"><label class="flbl">Комментарий</label>
@@ -397,6 +432,28 @@
         <button class="step-btn" onclick="App.step('con-qty',.1)"><svg class="i"><use xlink:href="#i-plus"/></svg></button></div></div>
   </div></div>
   <div class="modal-foot"><button class="btn-main" onclick="App.doConsume()">Списать</button></div>
+</div>
+
+<!-- Modal: переместить -->
+<div class="modal" id="m-move">
+  <div class="modal-top">
+    <button class="modal-back" onclick="App.closeModal('m-move')"><span class="bi"><svg class="i"><use xlink:href="#i-chev-left"/></svg>Назад</span></button>
+    <div class="modal-ttl">Переместить</div>
+  </div>
+  <div class="modal-scroll"><div class="form">
+    <div class="hero">
+      <div class="hero-ico center tone-violet"><svg class="i"><use xlink:href="#i-move"/></svg></div>
+      <div class="hero-name" id="mv-name"></div>
+      <div class="hero-sub" id="mv-avail"></div>
+    </div>
+    <div class="fg"><label class="flbl">Куда переложить? *</label>
+      <select class="fin" id="mv-place"></select></div>
+    <div class="fg"><label class="flbl">Сколько? *</label>
+      <div class="stepper"><button class="step-btn" onclick="App.step('mv-qty',-1)"><svg class="i"><use xlink:href="#i-minus"/></svg></button>
+        <input class="step-in" type="number" id="mv-qty" value="1" min="0.001" step="0.1">
+        <button class="step-btn" onclick="App.step('mv-qty',1)"><svg class="i"><use xlink:href="#i-plus"/></svg></button></div></div>
+  </div></div>
+  <div class="modal-foot"><button class="btn-main" onclick="App.doMove()">Переместить</button></div>
 </div>
 
 <!-- Modal: добавить в список -->
@@ -458,10 +515,18 @@ document.getElementById('jscheck').style.display = 'none'; /* JS работае�
 
 var App = (function() {
   var API = '/api';
+  /* свёрнутые группы запоминаются в браузере; в приватном режиме Safari localStorage бросает исключение */
+  function loadLocal(key) {
+    try { var v=window.localStorage.getItem(key); return v ? JSON.parse(v) : {}; } catch(e) { return {}; }
+  }
+  function saveLocal(key, obj) {
+    try { window.localStorage.setItem(key, JSON.stringify(obj)); } catch(e) {}
+  }
   var S = {
     prods:[], units:[], places:[], stores:[], cats:[],
     pById:{}, uById:{}, plById:{}, stById:{},
-    inv:[], shop:[], notifs:[], settings:null, report:null, dashPlace:0, invCollapsed:{},
+    inv:[], shop:[], notifs:[], settings:null, report:null, dashPlace:0,
+    invCollapsed:loadLocal('holodos.invCollapsed'), dashCollapsed:loadLocal('holodos.dashCollapsed'),
     tab:'home',
     stockId:null, shopId:null,
     asPid:null, asNew:null, asLoading:false /* форма запаса: выбранный продукт / подсказка для нового */
@@ -693,8 +758,15 @@ var App = (function() {
 
   function toggleInvGroup(id) {
     S.invCollapsed[id] = !S.invCollapsed[id];
+    saveLocal('holodos.invCollapsed', S.invCollapsed);
     var grp = document.getElementById('inv-grp-'+id);
     if (grp) grp.className = S.invCollapsed[id] ? 'grp collapsed' : 'grp';
+  }
+  function toggleDashGroup(id) {
+    S.dashCollapsed[id] = !S.dashCollapsed[id];
+    saveLocal('holodos.dashCollapsed', S.dashCollapsed);
+    var grp = document.getElementById('dash-grp-'+id);
+    if (grp) grp.className = S.dashCollapsed[id] ? 'grp collapsed' : 'grp';
   }
 
   /* render shopping */
@@ -728,24 +800,60 @@ var App = (function() {
   }
 
   /* render notifications */
+  function isUnread(n) { return n.status==='NEW'||n.status==='DELIVERED'; }
+  /* «продукт закончился» с известным продуктом: по нажатию предлагаем добавить его в список покупок */
+  function offersShopping(n) { return n.type==='OUT_OF_STOCK'&&!!n.productId&&!!S.pById[n.productId]; }
+
   function renderNotifs() {
     var el=document.getElementById('notif-list');
     if(!S.notifs.length){el.innerHTML=emptyBox('bell','Уведомлений нет','');return;}
-    var h='<div class="panel" style="margin-top:4px">';
+    var unread=0;
+    for(var k=0;k<S.notifs.length;k++) if(isUnread(S.notifs[k])) unread++;
+    var h=unread>0?'<div class="notif-bar"><div class="sec">Непрочитанных: '+unread+'</div>'+
+      '<button class="link-btn" onclick="App.readAllNotifs()"><span class="bi">'+ico('check')+'Прочитать все</span></button></div>':'';
+    h+='<div class="panel" style="margin-top:4px">';
     for(var i=0;i<S.notifs.length;i++){
-      var n=S.notifs[i], u=(n.status==='NEW'||n.status==='DELIVERED');
-      h+='<div class="notif'+(u?' unread':'')+'" onclick="App.readNotif('+n.id+',this)">'+
+      var n=S.notifs[i];
+      h+='<div class="notif'+(isUnread(n)?' unread':'')+'" onclick="App.readNotif('+n.id+',this)">'+
         '<div class="notif-dot"></div><div class="notif-body">'+
         '<div class="notif-t">'+esc(n.title)+'</div>'+
         '<div class="notif-m">'+esc(n.message)+'</div>'+
-        '<div class="notif-d">'+fdatetime(n.createdAt)+'</div></div></div>';
+        '<div class="notif-d">'+fdatetime(n.createdAt)+(offersShopping(n)?'<span class="notif-act">· В список покупок</span>':'')+'</div></div></div>';
     }
     el.innerHTML=h+'</div>';
   }
 
+  /* отметка о прочтении идёт мимо POST(): его блокировка съела бы следующий запрос (добавление в список) */
+  function markNotifRead(n,el){
+    if(!isUnread(n)) return;
+    xhr('notifications/'+n.id+'/read','POST',{}).then(function(){
+      n.status='READ'; if(el) el.className='notif';
+      return loadNotifs();
+    }).then(renderNotifs).catch(function(e){toast(e.message,'err');});
+  }
+
   function readNotif(id,el){
-    POST('notifications/'+id+'/read',{}).then(function(){
-      el.className='notif'; loadNotifs();
+    var n=byId(S.notifs,id); if(!n)return;
+    markNotifRead(n,el);
+    if(offersShopping(n)) offerShopping(S.pById[n.productId]);
+  }
+
+  function offerShopping(p){
+    for(var i=0;i<S.shop.length;i++){
+      if(S.shop[i].productId===p.id){toast('«'+p.name+'» уже в списке покупок');return;}
+    }
+    if(!confirm('Добавить «'+p.name+'» в список покупок?'))return;
+    POST('shopping-list',{title:p.name,quantity:p.reorderQuantity?parseFloat(p.reorderQuantity):1,source:'MANUAL',
+      sortOrder:S.shop.length,productId:p.id,unitId:p.defaultUnitId||null,storeId:p.defaultStoreId||null,comment:null}).then(function(){
+      toast('Добавлено в список покупок','ok'); return refreshShop();
+    }).catch(function(e){toast(e.message,'err');});
+  }
+
+  function readAllNotifs(){
+    POST('notifications/read-all',{}).then(function(){
+      return loadNotifs();
+    }).then(function(){
+      renderNotifs(); toast('Все уведомления прочитаны','ok');
     }).catch(function(e){toast(e.message,'err');});
   }
 
@@ -913,8 +1021,10 @@ var App = (function() {
       }
       for (var gi=0; gi<order.length; gi++) {
         var ok=order[gi];
-        h+='<div class="grp"><div class="grp-h">'+plico(ok)+'<span class="grp-name">'+esc(ok>0?plname(ok):'Без места')+'</span>'+
-          '<span class="grp-cnt">'+groups[ok].length+'</span></div>'+invRows(groups[ok])+'</div>';
+        h+='<div class="grp'+(S.dashCollapsed[ok]?' collapsed':'')+'" id="dash-grp-'+ok+'">'+
+          '<div class="grp-h tap" onclick="App.toggleDashGroup('+ok+')">'+plico(ok)+'<span class="grp-name">'+esc(ok>0?plname(ok):'Без места')+'</span>'+
+          '<span class="grp-cnt">'+groups[ok].length+'</span>'+ico('chev-down','chev')+'</div>'+
+          '<div class="grp-b">'+invRows(groups[ok])+'</div></div>';
       }
     } else {
       h=invRows(items);
@@ -982,8 +1092,37 @@ var App = (function() {
       '<span class="sheet-sub">'+esc(sub)+'</span>';
     document.getElementById('sheet-body').innerHTML=
       sheetBtn('App.startConsume('+id+')','use','tone-blue','Использовал',false)+
+      sheetBtn('App.startMove('+id+')','move','tone-violet','Переместить в другое место',false)+
       sheetBtn('App.doDiscard('+id+')','trash','tone-red','Выбросить / Списать',true);
     openSheet();
+  }
+
+  function startMove(id) {
+    closeSheet();
+    var e=byId(S.inv,id); if(!e)return;
+    var targets=[];
+    for(var i=0;i<S.places.length;i++){
+      var pl=S.places[i];
+      if(pl.active!==false&&pl.id!==e.storagePlaceId) targets.push(pl);
+    }
+    if(!targets.length){toast('Нет другого места хранения','err');return;}
+    S.stockId=id;
+    document.getElementById('mv-name').textContent=pname(e.productId);
+    document.getElementById('mv-avail').textContent=plname(e.storagePlaceId)+' · '+parseFloat(e.quantity)+' '+ushort(e.unitId);
+    fill('mv-place',targets,function(p){return p.name;},null);
+    document.getElementById('mv-qty').value=parseFloat(e.quantity);
+    openModal('m-move');
+  }
+  function doMove() {
+    var e=byId(S.inv,S.stockId); if(!e)return;
+    var qty=parseFloat(document.getElementById('mv-qty').value);
+    var plid=parseInt(document.getElementById('mv-place').value,10);
+    if(!qty||qty<=0){toast('Укажите количество','err');return;}
+    if(qty>parseFloat(e.quantity)){toast('Доступно только '+parseFloat(e.quantity)+' '+ushort(e.unitId),'err');return;}
+    if(!plid){toast('Выберите место','err');return;}
+    POST('stock-entries/'+S.stockId+'/move',{toStoragePlaceId:plid,quantity:qty}).then(function(){
+      closeModal('m-move'); toast('Перемещено: '+plname(plid),'ok'); return refreshInv();
+    }).catch(function(err){toast(err.message,'err');});
   }
 
   function startConsume(id) {
@@ -1076,7 +1215,68 @@ var App = (function() {
       S.asLoading=false; setHint('as-hint',''); toast(e.message,'err');
     });
   }
+  /* новая единица / место прямо из формы запаса. fillSelects() не зовём: он сбросил бы уже подобранные значения */
+  function toggleNewBox(id) {
+    var box=document.getElementById(id), open=box.style.display==='none';
+    box.style.display=open?'':'none';
+    var inp=box.getElementsByTagName('input');
+    for(var i=0;i<inp.length;i++) inp[i].value='';
+    if(open&&inp.length) inp[0].focus();
+  }
+  function addOpt(id,value,label) {
+    var el=document.getElementById(id); if(!el)return;
+    var o=document.createElement('option');
+    o.value=String(value); o.textContent=label;
+    el.appendChild(o);
+  }
+  function findByName(arr,name) {
+    var n=name.toLowerCase();
+    for(var i=0;i<arr.length;i++) if(String(arr[i].name).toLowerCase()===n) return arr[i];
+    return null;
+  }
+  /* код единицы обязателен и уникален: берём краткое название, при совпадении добавляем номер */
+  function unitCode(shortName) {
+    var base=shortName.toLowerCase().replace(/\s+/g,'-').substring(0,36), code=base, n=2, used={};
+    for(var i=0;i<S.units.length;i++) used[String(S.units[i].code).toLowerCase()]=true;
+    while(used[code]) code=base+'-'+(n++);
+    return code;
+  }
+  function unitLabel(u) { return u.name+' ('+u.shortName+')'; }
+  function createUnit() {
+    var name=trim(document.getElementById('nu-name').value);
+    var shortName=trim(document.getElementById('nu-short').value)||name.substring(0,40);
+    if(!name){toast('Укажите название единицы','err');return;}
+    var ex=findByName(S.units,name);
+    if(ex){setv('as-unit',ex.id); toggleNewBox('nu-box'); toast('Такая единица уже есть — выбрана');return;}
+    POST('units',{code:unitCode(shortName),name:name,shortName:shortName,unitType:document.getElementById('nu-type').value,active:true}).then(function(u){
+      S.units.push(u); S.uById[u.id]=u;
+      addOpt('as-unit',u.id,unitLabel(u));
+      addOpt('sh-unit',u.id,unitLabel(u));
+      setv('as-unit',u.id);
+      toggleNewBox('nu-box');
+      toast('Единица «'+u.name+'» создана','ok');
+    }).catch(function(e){toast(e.message,'err');});
+  }
+  function createPlace() {
+    var name=trim(document.getElementById('np-name').value);
+    if(!name){toast('Укажите название места','err');return;}
+    var ex=findByName(S.places,name);
+    if(ex){setv('as-place',ex.id); toggleNewBox('np-box'); toast('Такое место уже есть — выбрано');return;}
+    var order=0;
+    for(var i=0;i<S.places.length;i++) if((S.places[i].sortOrder||0)>order) order=S.places[i].sortOrder;
+    POST('storage-places',{name:name,description:null,icon:null,color:null,sortOrder:order+10,active:true}).then(function(p){
+      S.places.push(p); S.plById[p.id]=p;
+      addOpt('as-place',p.id,p.name);
+      addOpt('buy-place',p.id,p.name);
+      setv('as-place',p.id);
+      toggleNewBox('np-box');
+      toast('Место «'+p.name+'» создано','ok');
+    }).catch(function(e){toast(e.message,'err');});
+  }
+
   function resetStockForm() {
+    document.getElementById('nu-box').style.display='none';
+    document.getElementById('np-box').style.display='none';
     document.getElementById('as-name').value='';
     document.getElementById('as-sugg').innerHTML='';
     document.getElementById('as-cat-row').style.display='none';
@@ -1240,12 +1440,15 @@ var App = (function() {
   return {
     init:init, reload:reload, showTab:showTab, fabAction:fabAction,
     openInvSheet:openInvSheet, startConsume:startConsume, doConsume:doConsume,
+    startMove:startMove, doMove:doMove,
     doDiscard:doDiscard, onProdInput:onProdInput, pickProd:pickProd, pickNewProd:pickNewProd, addStock:addStock,
+    toggleNewBox:toggleNewBox, createUnit:createUnit, createPlace:createPlace,
     openShopSheet:openShopSheet, startBuy:startBuy, doBuy:doBuy,
     removeShop:removeShop, onShProdChange:onShProdChange, addShopping:addShopping,
-    readNotif:readNotif, saveSettings:saveSettings,
+    readNotif:readNotif, readAllNotifs:readAllNotifs, saveSettings:saveSettings,
     step:step, closeSheet:closeSheet, openModal:openModal, closeModal:closeModal,
-    renderDashboard:renderDashboard, switchDashPlace:switchDashPlace, toggleInvGroup:toggleInvGroup
+    renderDashboard:renderDashboard, switchDashPlace:switchDashPlace,
+    toggleInvGroup:toggleInvGroup, toggleDashGroup:toggleDashGroup
   };
 })();
 
