@@ -1,5 +1,6 @@
 package com.holodos.notifications.application;
 
+import com.holodos.inventory.infrastructure.StockEntryRepository;
 import com.holodos.notifications.domain.Notification;
 import com.holodos.notifications.domain.NotificationStatus;
 import com.holodos.notifications.infrastructure.NotificationRepository;
@@ -11,7 +12,9 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +26,13 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserSettingsService userSettingsService;
+    private final StockEntryRepository stockEntryRepository;
 
-    public NotificationService(NotificationRepository notificationRepository, UserSettingsService userSettingsService) {
+    public NotificationService(NotificationRepository notificationRepository, UserSettingsService userSettingsService,
+                               StockEntryRepository stockEntryRepository) {
         this.notificationRepository = notificationRepository;
         this.userSettingsService = userSettingsService;
+        this.stockEntryRepository = stockEntryRepository;
     }
 
     public Notification createIfMissing(String dedupKey, String type, String title, String message, String entityType, String entityId) {
@@ -67,6 +73,50 @@ public class NotificationService {
         notification.setStatus(NotificationStatus.READ);
         notification.setReadAt(OffsetDateTime.now());
         notificationRepository.save(notification);
+    }
+
+    public void markAllRead() {
+        List<Notification> unread = notificationRepository.findByStatusInOrderByCreatedAtDesc(
+            List.of(NotificationStatus.NEW, NotificationStatus.DELIVERED));
+        OffsetDateTime now = OffsetDateTime.now();
+        for (Notification notification : unread) {
+            notification.setStatus(NotificationStatus.READ);
+            notification.setReadAt(now);
+        }
+        notificationRepository.saveAll(unread);
+    }
+
+    /**
+     * Product of each notification about a stock entry, keyed by notification id. The batch itself may be
+     * consumed or discarded by now (out-of-stock notifications), so it is looked up regardless of status.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Long> productIds(Collection<Notification> notifications) {
+        Map<Long, Long> stockEntryIds = new HashMap<>();
+        for (Notification n : notifications) {
+            if ("StockEntry".equals(n.getEntityType()) && n.getEntityId() != null) {
+                try {
+                    stockEntryIds.put(n.getId(), Long.valueOf(n.getEntityId()));
+                } catch (NumberFormatException ignored) {
+                    // not a stock entry id: no product
+                }
+            }
+        }
+        if (stockEntryIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> productByEntry = new HashMap<>();
+        for (Object[] row : stockEntryRepository.findProductIdsByIds(new ArrayList<>(stockEntryIds.values()))) {
+            productByEntry.put((Long) row[0], (Long) row[1]);
+        }
+        Map<Long, Long> result = new HashMap<>();
+        stockEntryIds.forEach((notificationId, entryId) -> {
+            Long productId = productByEntry.get(entryId);
+            if (productId != null) {
+                result.put(notificationId, productId);
+            }
+        });
+        return result;
     }
 
     public UserSettings settings() {

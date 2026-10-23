@@ -11,6 +11,8 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -48,12 +50,26 @@ public class InventoryController {
     }
 
     @PostMapping("/{id}/move")
-    public StockEntryResponse move(@PathVariable Long id, @Valid @RequestBody MoveStockRequest request) {
+    public StockEntryResponse move(@PathVariable Long id, @Valid @RequestBody MoveStockRequest request,
+                                   Authentication authentication) {
+        if (request.username() == null || request.username().isBlank()) {
+            request = new MoveStockRequest(request.toStoragePlaceId(), request.quantity(), request.comment(), currentUser(authentication));
+        }
         return inventoryService.move(id, request);
     }
 
     @PostMapping("/{id}/adjust")
     public StockEntryResponse adjust(@PathVariable Long id, @Valid @RequestBody AdjustStockRequest request) {
         return inventoryService.adjust(id, request);
+    }
+
+    private static String currentUser(Authentication authentication) {
+        if (authentication == null) {
+            return "unknown";
+        }
+        if (authentication.getPrincipal() instanceof OidcUser user && user.getEmail() != null) {
+            return user.getEmail();
+        }
+        return authentication.getName();
     }
 }

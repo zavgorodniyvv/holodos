@@ -5,6 +5,7 @@ import com.holodos.notifications.domain.Notification;
 import com.holodos.notifications.domain.NotificationStatus;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,7 +19,14 @@ public class NotificationController {
 
     @GetMapping
     public List<NotificationResponse> list() {
-        return notificationService.list().stream().map(this::map).toList();
+        List<Notification> notifications = notificationService.list();
+        Map<Long, Long> productIds = notificationService.productIds(notifications);
+        return notifications.stream().map(n -> map(n, productIds.get(n.getId()))).toList();
+    }
+
+    @PostMapping("/read-all")
+    public void markAllRead() {
+        notificationService.markAllRead();
     }
 
     @PostMapping("/{id}/read")
@@ -26,8 +34,9 @@ public class NotificationController {
         notificationService.markRead(id);
     }
 
-    private NotificationResponse map(Notification n) {
-        return new NotificationResponse(n.getId(), n.getType(), n.getTitle(), n.getMessage(), n.getEntityType(), n.getEntityId(), n.getStatus(), n.getCreatedAt(), n.getReadAt());
+    private NotificationResponse map(Notification n, Long productId) {
+        return new NotificationResponse(n.getId(), n.getType(), n.getTitle(), n.getMessage(), n.getEntityType(), n.getEntityId(),
+            productId, n.getStatus(), n.getCreatedAt(), n.getReadAt());
     }
 
     public record NotificationResponse(
@@ -37,6 +46,8 @@ public class NotificationController {
         String message,
         String entityType,
         String entityId,
+        /** Product of the stock entry the notification is about, when there is one. */
+        Long productId,
         NotificationStatus status,
         OffsetDateTime createdAt,
         OffsetDateTime readAt

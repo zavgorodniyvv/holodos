@@ -34,11 +34,12 @@ public final class InventoryDtos {
         @NotNull @Positive @Digits(integer = 11, fraction = 3) BigDecimal quantity
     ) {}
 
+    /** username defaults to the signed-in user's email. */
     public record MoveStockRequest(
         @NotNull Long toStoragePlaceId,
         @NotNull @Positive @Digits(integer = 11, fraction = 3) BigDecimal quantity,
         String comment,
-        @NotNull String username
+        String username
     ) {}
 
     public record AdjustStockRequest(

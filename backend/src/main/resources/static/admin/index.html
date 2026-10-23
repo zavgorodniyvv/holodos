@@ -40,6 +40,14 @@
 
         .content{-webkit-flex:1 1 auto;flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 20px 40px;}
         .wrap{max-width:900px;}
+        .content.has-idx{padding-right:40px;}
+
+        /* алфавит как в «Контактах»: буква-заголовок прилипает к верху, справа — указатель */
+        .main{position:relative;}
+        .abc-grp{margin-bottom:6px;}
+        .abc{position:-webkit-sticky;position:sticky;top:0;z-index:2;margin:0;padding:12px 4px 8px;background:#f2f4f7;font-size:1.05rem;font-weight:800;color:#1f6feb;}
+        .abc-idx{position:absolute;top:72px;bottom:8px;right:4px;width:30px;z-index:5;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-justify-content:center;justify-content:center;-webkit-user-select:none;user-select:none;}
+        .abc-idx div{-webkit-flex:0 1 auto;flex:0 1 auto;min-height:0;overflow:hidden;padding:1px 0;font-size:.72rem;font-weight:700;line-height:1.25;color:#1f6feb;text-align:center;cursor:pointer;}
 
         /* search */
         .search{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:48px;margin:4px 0 6px;padding:0 6px 0 14px;border:1px solid #d0d5dd;border-radius:14px;background:#fff;}
@@ -170,11 +178,11 @@
 <div id="app">
     <nav class="nav">
         <div class="brand"><span class="brand-mark center"><svg class="i"><use xlink:href="#i-logo"/></svg></span><div>Holodos<small>Каталог</small></div></div>
-        <button class="nav-btn active" data-section="categories"><span class="bi"><svg class="i"><use xlink:href="#i-tag"/></svg><span>Категории</span></span></button>
+        <button class="nav-btn active" data-section="products"><span class="bi"><svg class="i"><use xlink:href="#i-bag"/></svg><span>Продукты</span></span></button>
+        <button class="nav-btn" data-section="categories"><span class="bi"><svg class="i"><use xlink:href="#i-tag"/></svg><span>Категории</span></span></button>
         <button class="nav-btn" data-section="storage-places"><span class="bi"><svg class="i"><use xlink:href="#i-box"/></svg><span>Места</span></span></button>
         <button class="nav-btn" data-section="stores"><span class="bi"><svg class="i"><use xlink:href="#i-store"/></svg><span>Магазины</span></span></button>
         <button class="nav-btn" data-section="units"><span class="bi"><svg class="i"><use xlink:href="#i-hash"/></svg><span>Единицы</span></span></button>
-        <button class="nav-btn" data-section="products"><span class="bi"><svg class="i"><use xlink:href="#i-bag"/></svg><span>Продукты</span></span></button>
         <div class="nav-foot">
             <button class="nav-btn" onclick="window.location.href='/app/index.html'"><span class="bi"><svg class="i"><use xlink:href="#i-chev-left"/></svg><span>В приложение</span></span></button>
         </div>
@@ -183,7 +191,7 @@
     <div class="main">
         <div class="topbar">
             <button class="back-btn" id="back-top" onclick="window.location.href='/app/index.html'" aria-label="В приложение"><span class="bi"><svg class="i"><use xlink:href="#i-chev-left"/></svg>Приложение</span></button>
-            <div class="topbar-title" id="section-title">Категории</div>
+            <div class="topbar-title" id="section-title">Продукты</div>
             <button class="add-btn" onclick="openCreateModal()"><span class="bi"><svg class="i"><use xlink:href="#i-plus"/></svg>Добавить</span></button>
         </div>
         <div class="content">
@@ -196,6 +204,7 @@
                 <div id="table-container"></div>
             </div>
         </div>
+        <div class="abc-idx" id="abc-idx" style="display:none"></div>
     </div>
 </div>
 
@@ -219,7 +228,7 @@
 
 <script>
 var API = '/api';
-var currentSection = 'categories';
+var currentSection = 'products';
 var editingId = null;
 var currentItems = [];
 var _cats = [], _units = [], _places = [], _stores = [];
@@ -464,7 +473,7 @@ var sections = {
         }
     },
     products: {
-        title: 'Продукты', endpoint: 'products', paginated: true, icon: 'bag', one: 'продукт',
+        title: 'Продукты', endpoint: 'products', paginated: true, alphabetical: true, icon: 'bag', one: 'продукт',
         renderRow: function(r) {
             var parts = [];
             if (r.categoryName) parts.push(esc(r.categoryName));
@@ -502,6 +511,7 @@ function loadSection(section) {
     document.getElementById('search-input').value = '';
 
     document.getElementById('table-container').innerHTML = '<div class="loading-text">Загрузка...</div>';
+    showAbcIndex('');
 
     return fetchItems(section, '').then(function(items) {
         currentItems = items;
@@ -515,7 +525,7 @@ function fetchItems(section, search) {
     var cfg = sections[section];
     if (cfg.paginated) {
         var q = search ? '&search=' + encodeURIComponent(search) : '';
-        return xhr(cfg.endpoint + '?page=0&size=200' + q).then(function(d) { return d.content; });
+        return xhr(cfg.endpoint + '?page=0&size=500&sort=name,asc' + q).then(function(d) { return d.content; });
     }
     return xhr(cfg.endpoint);
 }
@@ -523,14 +533,82 @@ function fetchItems(section, search) {
 function renderTable(section, items) {
     var cfg = sections[section];
     var el = document.getElementById('table-container');
+    showAbcIndex('');
     if (!items.length) {
         el.innerHTML = '<div class="empty"><div class="empty-ico center">' + ico(cfg.icon) + '</div>' +
             '<b>Нет записей</b>Нажмите «Добавить», чтобы создать ' + cfg.one + '</div>';
         return;
     }
+    if (cfg.alphabetical) { renderAlphabetical(el, cfg, items); return; }
     var h = '';
     for (var j = 0; j < items.length; j++) h += row(items[j], cfg.renderRow(items[j]));
     el.innerHTML = '<div class="sec">Записей: ' + items.length + '</div><div class="panel">' + h + '</div>';
+}
+
+// ── Алфавитный список ─────────────────────────────────────────────────────────
+// Сначала кириллица (русские и украинские буквы, ё = е), потом латиница, остальное — в «#».
+// Свой порядок вместо localeCompare: в Safari 9 нет Intl.
+var CYR = 'абвгґдеєжзиіїйклмнопрстуфхцчшщъыьэюя';
+
+function alphaKey(name) {
+    var s = String(name || '').replace(/^\s+/, '').toLowerCase().replace(/ё/g, 'е'), k = '';
+    for (var i = 0; i < s.length; i++) {
+        var p = CYR.indexOf(s.charAt(i));
+        k += p >= 0 ? String.fromCharCode(0x3000 + p) : s.charAt(i);
+    }
+    return k;
+}
+function alphaLetter(name) {
+    var c = String(name || '').replace(/^\s+/, '').charAt(0).toLowerCase();
+    if (c === 'ё') c = 'е';
+    if (CYR.indexOf(c) >= 0 || /[a-z]/.test(c)) return c.toUpperCase();
+    return '#';
+}
+function alphaRank(letter) {
+    if (letter === '#') return 2;
+    return /[A-Z]/.test(letter) ? 1 : 0;
+}
+
+function renderAlphabetical(el, cfg, items) {
+    var sorted = items.slice(0);
+    sorted.sort(function(a, b) {
+        var ra = alphaRank(alphaLetter(a.name)), rb = alphaRank(alphaLetter(b.name));
+        if (ra !== rb) return ra - rb;
+        var ka = alphaKey(a.name), kb = alphaKey(b.name);
+        return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+    var h = '<div class="sec">Записей: ' + items.length + '</div>', idx = '', n = 0, letter = null;
+    for (var i = 0; i < sorted.length; i++) {
+        var l = alphaLetter(sorted[i].name);
+        if (l !== letter) {
+            if (letter !== null) h += '</div></div>';
+            letter = l;
+            h += '<div class="abc-grp" id="abc-' + n + '"><div class="abc">' + esc(l) + '</div><div class="panel">';
+            idx += '<div data-i="' + n + '">' + esc(l) + '</div>';
+            n++;
+        }
+        h += row(sorted[i], cfg.renderRow(sorted[i]));
+    }
+    el.innerHTML = h + '</div></div>';
+    showAbcIndex(n > 1 ? idx : '');
+}
+
+function showAbcIndex(html) {
+    var idxEl = document.getElementById('abc-idx');
+    idxEl.innerHTML = html;
+    idxEl.style.display = html ? '' : 'none';
+    document.querySelector('.content').className = html ? 'content has-idx' : 'content';
+}
+
+// Нажатие или ведение пальцем по указателю прокручивает к букве
+function abcTouch(e) {
+    var t = e.touches ? e.touches[0] : e;
+    var target = document.elementFromPoint(t.clientX, t.clientY);
+    var i = target && target.getAttribute ? target.getAttribute('data-i') : null;
+    if (e.touches) e.preventDefault();
+    if (i === null) return;
+    var grp = document.getElementById('abc-' + i), content = document.querySelector('.content');
+    if (grp) content.scrollTop += grp.getBoundingClientRect().top - content.getBoundingClientRect().top;
 }
 
 function searchProducts() {
@@ -663,7 +741,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === this) hideModal();
     });
 
-    loadSection('categories');
+    var idxEl = document.getElementById('abc-idx');
+    idxEl.addEventListener('touchstart', abcTouch);
+    idxEl.addEventListener('touchmove', abcTouch);
+    idxEl.addEventListener('click', abcTouch);
+
+    loadSection('products');
 });
 </script>
 </body>

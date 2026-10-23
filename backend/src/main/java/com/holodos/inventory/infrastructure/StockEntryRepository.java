@@ -4,6 +4,7 @@ import com.holodos.inventory.domain.StockEntry;
 import com.holodos.inventory.domain.StockStatus;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -32,5 +33,9 @@ public interface StockEntryRepository extends JpaRepository<StockEntry, Long>, J
     List<StockEntry> findWithProductByStatus(@Param("status") StockStatus status);
 
     List<StockEntry> findByStatus(StockStatus status);
+
+    /** Pairs of [stock entry id, product id], whatever the batch status. */
+    @Query("select s.id, s.product.id from StockEntry s where s.id in :ids")
+    List<Object[]> findProductIdsByIds(@Param("ids") Collection<Long> ids);
 
 }
