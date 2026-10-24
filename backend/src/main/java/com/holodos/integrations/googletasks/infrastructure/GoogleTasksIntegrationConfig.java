@@ -4,19 +4,23 @@ import com.holodos.integrations.googletasks.application.GoogleTasksClient;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import java.net.http.HttpClient;
 import java.time.Duration;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @EnableConfigurationProperties(GoogleTasksProperties.class)
 public class GoogleTasksIntegrationConfig {
 
-    /** Explicit timeouts: these calls run on the shared scheduler thread, a hung request would stall all jobs. */
+    /**
+     * Explicit timeouts: these calls run on the shared scheduler thread, a hung request would stall all jobs.
+     * JDK HttpClient rather than HttpURLConnection, which rejects PATCH (used to complete tasks).
+     */
     @Bean
     public RestTemplate googleTasksRestTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(10));
+        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(Duration.ofSeconds(30));
         return new RestTemplate(factory);
     }
