@@ -70,6 +70,10 @@ public class GoogleTasksOAuthService {
         }
         binding.setTokenExpiresAt(OffsetDateTime.now().plusSeconds(tokenResponse.expires_in()));
         binding.setEnabled(true);
+        // Fresh credentials: the backoff earned by the old ones must not delay the next sync for hours
+        binding.setFailureCount(0);
+        binding.setNextRetryAt(null);
+        binding.setLastErrorMessage(null);
         bindingRepository.save(binding);
 
         log.info("Google Tasks OAuth callback processed for user: {}", userKey);
